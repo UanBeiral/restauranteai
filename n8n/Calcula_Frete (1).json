@@ -1,0 +1,64 @@
+{
+  "name": "Calcula_Frete",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "jsonExample",
+        "jsonExample": "{\n  \"distance\": 0.33  \n}"
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        540,
+        120
+      ],
+      "id": "a8d4b748-c7a8-4950-a4ab-2fd95d203b68",
+      "name": "Start"
+    },
+    {
+      "parameters": {
+        "jsCode": "// query: distância em km (string ou number)\nlet distance = $input.first().json.distance;\nconst dist = typeof distance === 'string'\n  ? parseFloat(distance.replace(',', '.'))\n  : distance;\n\nif (isNaN(dist) || dist < 0) {\n  throw new Error(`Distância inválida: ${distance}`);\n}\n\nlet frete;\nif (dist <= 3) {\n  frete = 5.00;\n} else if (dist <= 6) {\n  frete = 8.00;\n} else if (dist <= 10) {\n  frete = 12.00;\n} else {\n  // acima de 10 km, R$ 12 + R$ 1 por km adicional\n  frete = parseFloat((12 + (dist - 10) * 1).toFixed(2));\n}\n\nreturn {\n    \"frete\" : frete}\n  ;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        760,
+        120
+      ],
+      "id": "35094abd-f7a1-45b5-8611-6195c5a5a04d",
+      "name": "Code"
+    }
+  ],
+  "pinData": {
+    "Start": [
+      {
+        "json": {
+          "distance": 0.33
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "998a6bab-5907-413a-aa75-1a3377b44504",
+  "meta": {
+    "instanceId": "1dfb32743644648a276cc34d3b8cd0a01d6b6ba4fd59776d06d5588058d2556c"
+  },
+  "id": "RitUc3X2Tib8Bnn6",
+  "tags": []
+}

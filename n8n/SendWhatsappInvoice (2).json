@@ -1,0 +1,174 @@
+{
+  "name": "SendWhatsappInvoice",
+  "nodes": [
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.evolution_api_url }}/message/sendText/{{ $json.evolution_api_instance }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $json.evolution_api_key }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "number",
+              "value": "={{ $json.phone }}"
+            },
+            {
+              "name": "=text",
+              "value": "={{ $json.text }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "220d940c-3ef4-41bc-b565-7a683c32001b",
+      "name": "Evolution API - HTTP Request1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        840,
+        60
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "84c558d0-84db-4ca3-91e6-b1d2f7cee2a7",
+              "name": "evolution_api_url",
+              "value": "https://evolution.restauranteai.shop",
+              "type": "string"
+            },
+            {
+              "id": "6bd91ace-5be1-4488-b7a7-d6df4e248c0d",
+              "name": "evolution_api_instance",
+              "value": "={{ $vars.evolution_api_instance }}",
+              "type": "string"
+            },
+            {
+              "id": "57075094-e509-446e-8316-baa9a2833c85",
+              "name": "evolution_api_key",
+              "value": "={{ $vars.evolution_api_key }}",
+              "type": "string"
+            },
+            {
+              "id": "8b85fccf-8060-435e-9dd5-fca0424d87f4",
+              "name": "phone",
+              "value": "={{ $vars.phone_loja}}",
+              "type": "string"
+            },
+            {
+              "id": "c5c7188e-e8cc-481c-ab38-5ce0fa8d0aae",
+              "name": "text",
+              "value": "={{ $json.message }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        600,
+        60
+      ],
+      "id": "1cdbcf4a-2663-4e6d-9d0f-e31018e8685f",
+      "name": "Config"
+    },
+    {
+      "parameters": {
+        "jsCode": "return { \n'response': \"Mensagem envia ao restaurante\"\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1040,
+        60
+      ],
+      "id": "64f4e1fb-6667-49df-8533-3dbd9d4ef946",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "inputSource": "jsonExample",
+        "jsonExample": "{\n  \"message\": \"oi\"\n}"
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        320,
+        60
+      ],
+      "id": "1d266a85-ba39-42f6-a9b6-1e09311fde19",
+      "name": "Start"
+    }
+  ],
+  "pinData": {
+    "Start": [
+      {
+        "json": {
+          "message": "olá"
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "Evolution API - HTTP Request1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Evolution API - HTTP Request1": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "5ee36a31-f238-401c-877c-e8ddf79e2d79",
+  "meta": {
+    "instanceId": "1dfb32743644648a276cc34d3b8cd0a01d6b6ba4fd59776d06d5588058d2556c"
+  },
+  "id": "ftdagqdGMspCHdde",
+  "tags": []
+}

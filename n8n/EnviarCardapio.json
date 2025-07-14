@@ -1,0 +1,174 @@
+{
+  "name": "EnviarCardapio",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "jsonExample",
+        "jsonExample": "{\n  \"phone\":\"557988381612\"  \n}"
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        520,
+        360
+      ],
+      "id": "80d22784-2ade-4cad-9c7e-717e483353bd",
+      "name": "Start"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "84c558d0-84db-4ca3-91e6-b1d2f7cee2a7",
+              "name": "evolution_api_url",
+              "value": "https://evolution.restauranteai.shop",
+              "type": "string"
+            },
+            {
+              "id": "6bd91ace-5be1-4488-b7a7-d6df4e248c0d",
+              "name": "evolution_api_instance",
+              "value": "=restauranteai",
+              "type": "string"
+            },
+            {
+              "id": "57075094-e509-446e-8316-baa9a2833c85",
+              "name": "evolution_api_key",
+              "value": "=9E024E39F0AD-4FFE-B5A2-EB48F1A6B233",
+              "type": "string"
+            },
+            {
+              "id": "8b85fccf-8060-435e-9dd5-fca0424d87f4",
+              "name": "phone",
+              "value": "={{ $json.phone }}",
+              "type": "string"
+            },
+            {
+              "id": "c5c7188e-e8cc-481c-ab38-5ce0fa8d0aae",
+              "name": "text",
+              "value": "=",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        760,
+        360
+      ],
+      "id": "6a44ddbf-e0fd-4e02-82b9-c8434ccdb113",
+      "name": "Config"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.evolution_api_url }}/message/sendMedia/{{ $json.evolution_api_instance }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $json.evolution_api_key }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"number\": \" {{ $('Start').item.json.phone }}\",\n  \"mediatype\": \"image\",\n  \"mimetype\": \"image/jpeg\",\n  \"media\": \"https://drive.google.com/uc?export=download&id=1m0WmCAhBLghCxW73gm2nEd3e7pHJk3hC\",\n  \"caption\": \"{{ $('Start').item.json.message }}\",\n  \"fileName\": \"cardapio_frente.jpg\"\n}\n",
+        "options": {}
+      },
+      "id": "f71a3d1d-d89f-4702-a8cd-43740de6805f",
+      "name": "Send cardapio Frente",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1040,
+        360
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').item.json.evolution_api_url }}/message/sendMedia/{{ $('Config').item.json.evolution_api_instance }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $('Config').item.json.evolution_api_key }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"number\": \" {{ $('Start').item.json.phone }}\",\n  \"mediatype\": \"image\",\n  \"mimetype\": \"image/jpeg\",\n  \"media\": \"https://drive.google.com/uc?export=download&id=1PCQyAvPPrvmtXM3inirJMi8nzHR3WvtD\",\n  \"caption\": \"{{ $('Start').item.json.question }}\",\n  \"fileName\": \"cardapio_costa.jpg\"\n}\n",
+        "options": {}
+      },
+      "id": "ddcf37ba-1df5-46b9-9f18-c14f9bf8bf1c",
+      "name": "Send Cardapio Costa",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1360,
+        360
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "Send cardapio Frente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send cardapio Frente": {
+      "main": [
+        [
+          {
+            "node": "Send Cardapio Costa",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "5c512a9f-94f2-41f2-b397-c8209eb0f44a",
+  "meta": {
+    "instanceId": "1dfb32743644648a276cc34d3b8cd0a01d6b6ba4fd59776d06d5588058d2556c"
+  },
+  "id": "gGDVm1vdMrVdVNW5",
+  "tags": []
+}

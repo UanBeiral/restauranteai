@@ -1,0 +1,672 @@
+{
+  "name": "Agente GPT",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -1160,
+        -80
+      ],
+      "id": "e0a04e2d-b9e3-4eb3-8c11-b21c67381f76",
+      "name": "When chat message received",
+      "webhookId": "85e0f109-5c48-4392-9bf8-845fc4127d02"
+    },
+    {
+      "parameters": {
+        "model": "gpt-4.1-mini-2025-04-14",
+        "options": {
+          "temperature": 0.5
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1,
+      "position": [
+        -220,
+        100
+      ],
+      "id": "7570f3b2-6694-4b7d-9313-f85cb7f9f468",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "XsdEpSP5P8jLT4KH",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "tableId": "pedidos",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "phone",
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues0_Field_Value', ``, 'string') }}"
+            },
+            {
+              "fieldId": "customer_name",
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues1_Field_Value', ``, 'string') }}"
+            },
+            {
+              "fieldId": "address",
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues2_Field_Value', ``, 'string') }}"
+            },
+            {
+              "fieldId": "distance_km",
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues3_Field_Value', ``, 'string') }}"
+            },
+            {
+              "fieldId": "status",
+              "fieldValue": "em_cadastramento"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [
+        360,
+        380
+      ],
+      "id": "64dc61a6-7bf3-4442-9db2-c6412f4ecbb3",
+      "name": "create_order",
+      "credentials": {
+        "supabaseApi": {
+          "id": "dRptRTTwjGhSJwch",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "tableId": "order_items",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "order_id",
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues0_Field_Value', ``, 'string') }}"
+            },
+            {
+              "fieldId": "item_name",
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues1_Field_Value', ``, 'string') }}"
+            },
+            {
+              "fieldId": "price",
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues2_Field_Value', ``, 'string') }}"
+            },
+            {
+              "fieldId": "quantity",
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues3_Field_Value', ``, 'string') }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [
+        540,
+        380
+      ],
+      "id": "6dc41412-fb11-4487-9de9-617308318eeb",
+      "name": "add_item_to_order",
+      "credentials": {
+        "supabaseApi": {
+          "id": "dRptRTTwjGhSJwch",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "tableId": "order_items",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "order_id",
+              "condition": "eq",
+              "keyValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('conditions0_Field_Value', ``, 'string') }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [
+        720,
+        380
+      ],
+      "id": "87372c85-90bb-4c07-96a1-5330a0632ad1",
+      "name": "remove_item_from_order",
+      "credentials": {
+        "supabaseApi": {
+          "id": "dRptRTTwjGhSJwch",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "pedidos",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('conditions0_Field_Value', ``, 'string') }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "status",
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues0_Field_Value', ``, 'string') }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [
+        900,
+        380
+      ],
+      "id": "010d1220-67be-4d99-864a-278cfd6cd7ff",
+      "name": "update_order_status",
+      "credentials": {
+        "supabaseApi": {
+          "id": "dRptRTTwjGhSJwch",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "order_items",
+        "returnAll": true,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "order_id",
+              "condition": "eq",
+              "keyValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('conditions0_Field_Value', ``, 'string') }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [
+        1080,
+        380
+      ],
+      "id": "c421acfd-c7c3-4c49-bc23-b268e77e7c4a",
+      "name": "get_order_items",
+      "credentials": {
+        "supabaseApi": {
+          "id": "dRptRTTwjGhSJwch",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "=557988381612"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryRedisChat",
+      "typeVersion": 1.4,
+      "position": [
+        0,
+        120
+      ],
+      "id": "4af99428-7636-4b2e-a89f-d3b649da6060",
+      "name": "memory",
+      "credentials": {
+        "redis": {
+          "id": "wlF4O0UQT5Suf5qb",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "69918e5c-6cbf-44a1-a0a8-e6bdd9646860",
+              "name": "text",
+              "value": "={{ $('When chat message received').item.json.chatInput }}",
+              "type": "string"
+            },
+            {
+              "id": "d5f56632-01ff-492a-98f1-c4f4dd7cc601",
+              "name": "session_id",
+              "value": "={{ $('When chat message received').item.json.sessionId }}",
+              "type": "string"
+            },
+            {
+              "id": "85351078-014d-476b-a79d-1b9cf0d604d9",
+              "name": "date_time",
+              "value": "={{ $now.format('yyyy-MM-dd')}}",
+              "type": "string"
+            },
+            {
+              "id": "142e0a72-710c-4497-9dae-d6c6bc9511e8",
+              "name": "week_day",
+              "value": "={{ $today.weekdayLong}}",
+              "type": "string"
+            },
+            {
+              "id": "17dd323e-622c-48d5-b870-86ed37aa7067",
+              "name": "horario",
+              "value": "={{ $now.format('HH:mm:ss')}}",
+              "type": "string"
+            },
+            {
+              "id": "b45baf98-0908-44ba-bb24-051e838ccf40",
+              "name": "name",
+              "value": "=Uan",
+              "type": "string"
+            },
+            {
+              "id": "957f3018-b2e2-4a3d-a278-b6406c259f94",
+              "name": "location",
+              "value": "=rua projetada 2, 272, apartamento 601, bloco 5., madre paulina – São Cristóvão - SE – ",
+              "type": "string"
+            },
+            {
+              "id": "26024e25-594a-4572-884f-9b79916a9f2e",
+              "name": "customer_name",
+              "value": "=Uan",
+              "type": "string"
+            },
+            {
+              "id": "703c9c77-1660-4583-803c-1353c1d20778",
+              "name": "phone",
+              "value": "=557988381612",
+              "type": "string"
+            },
+            {
+              "id": "a6303600-ad4e-4839-b6fb-f84c0768c09a",
+              "name": "full_address",
+              "value": "=rua projetada 2, 272, apartamento 601, bloco 5., madre paulina – São Cristóvão - SE – ",
+              "type": "string"
+            },
+            {
+              "id": "26281099-e2c7-4938-87d2-699ea7655513",
+              "name": "lat",
+              "value": "=-10.989073",
+              "type": "string"
+            },
+            {
+              "id": "d4a99a36-ca92-4e86-ab72-fc8d53d931b8",
+              "name": "long",
+              "value": "=-37.053912",
+              "type": "string"
+            },
+            {
+              "id": "51c300fc-ccd3-4dbc-b171-29544381c6ad",
+              "name": "distancia",
+              "value": 10,
+              "type": "number"
+            },
+            {
+              "id": "c1dc526e-d8aa-47be-bffc-0b2ed5ad418f",
+              "name": "memory_state",
+              "value": "={{ $json.memory_state }}",
+              "type": "object"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -420,
+        -160
+      ],
+      "id": "03eb03f7-9afb-4b5e-913d-313c72b1f01a",
+      "name": "Config1"
+    },
+    {
+      "parameters": {
+        "description": "Chame esta tool para calcula o frete",
+        "workflowId": {
+          "__rl": true,
+          "value": "RitUc3X2Tib8Bnn6",
+          "mode": "list",
+          "cachedResultName": "Calcula_Frete"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "distance": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('distance', ``, 'number') }}"
+          },
+          "matchingColumns": [
+            "distance"
+          ],
+          "schema": [
+            {
+              "id": "distance",
+              "displayName": "distance",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        820,
+        160
+      ],
+      "id": "1dbff0ad-171f-4954-90dd-fd220ab762a3",
+      "name": "calcula_frete"
+    },
+    {
+      "parameters": {
+        "description": "Chame esta tool para buscar items do cardapio",
+        "workflowId": {
+          "__rl": true,
+          "value": "HzXXO6HfQxJDKyCJ",
+          "mode": "list",
+          "cachedResultName": "buscar_itens"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "texto": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('texto', ``, 'string') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "phone",
+              "displayName": "phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": true
+            },
+            {
+              "id": "texto",
+              "displayName": "texto",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        660,
+        160
+      ],
+      "id": "6c527067-ace6-452e-80f0-9d2c4ab16e28",
+      "name": "buscar_itens"
+    },
+    {
+      "parameters": {
+        "operation": "set",
+        "key": "=status-{{ $json.phone }}",
+        "value": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Value', ``, 'string') }}"
+      },
+      "type": "n8n-nodes-base.redisTool",
+      "typeVersion": 1,
+      "position": [
+        1000,
+        -40
+      ],
+      "id": "1ed724a5-aba7-4c7e-829b-a57b89f7be8c",
+      "name": "memory.set",
+      "credentials": {
+        "redis": {
+          "id": "wlF4O0UQT5Suf5qb",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.text }}",
+        "options": {
+          "systemMessage": "==== System Prompt ===\n\nVocê é um agente de atendimento da Bread&Meat, especializado em carnes e acompanhamentos por delivery via WhatsApp.  \nNão misture mensagens internas (chamadas de ferramentas, “think” ou logs) com o que é enviado ao cliente.\n\n**Observação:** o `memory_state` já foi carregado de Redis e está disponível em `$json.memory_state`.\n\n----------------------------------------------------------------  \nDetalhes completos do fluxo de interação  \n----------------------------------------------------------------  \n\n1. Saudação e configuração inicial  \n   Condição: `{{$json.memory_state}} == null`  \n   execute think input: { thought: \"Enviar saudação inicial e configurar fluxo de categoria via memory.set\" }  \n   execute memory.set input: {  \n     key: \"status-{{$json.phone}}\",  \n     value: { ultimo_tipo: null, ultimas_opcoes: [], order_id: null, last_action: \"awaiting_category\" }  \n   }  \n   retornar ao cliente:  \n     Olá, {{$json.customer_name}}! Aqui está nosso cardápio. Qual categoria você quer ver primeiro?  \n   pare.\n\n2. Identificação de Categoria  \n   Condição: `{{$json.memory_state.last_action}} == \"awaiting_category\"`  \n   execute think input: { thought: \"Categoria recebida, buscar itens correspondentes\" }  \n   execute buscar_itens input: { texto: \"{{$json.text}}\" }  \n   execute think input: { thought: \"Atualizar estado com opções recebidas via memory.set\" }  \n   execute memory.set input: {  \n     key: \"status-{{$json.phone}}\",  \n     value: { ultimo_tipo: \"selecao\", ultimas_opcoes: {{$json.memory_state.ultimas_opcoes}}, order_id: null, last_action: \"awaiting_item_number\" }  \n   }  \n   retornar ao cliente: {{$response.resposta}}  \n   pare.\n\n3. Seleção de Item  \n   Condição: `{{$json.memory_state.last_action}} == \"awaiting_item_number\"` **e** `parseInt(\"{{$json.text}}\",10)` está entre 1 e `{{$json.memory_state.ultimas_opcoes.length}}`  \n   interno:  \n     const index = parseInt(\"{{$json.text}}\",10) - 1  \n     const item = $json.memory_state.ultimas_opcoes[index]  \n     if (!item) {  \n       return { texto_puro: `Número inválido. Escolha entre 1 e ${$json.memory_state.ultimas_opcoes.length}.` }  \n     }  \n   execute think input: { thought: \"Criar pedido se necessário e adicionar item\" }  \n   **Se** `{{$json.memory_state.order_id}} == null` **então**  \n     execute create_order input: {  \n       phone: \"{{$json.phone}}\",  \n       customer_name: \"{{$json.customer_name}}\",  \n       address: \"{{$json.full_address}}\",  \n       distance_km: {{$json.distancia}}  \n     }  \n     \n   retornar ao cliente:  \n     Item ‘{{item.nome}}’ adicionado ao pedido. Alguma bebida?  \n   pare.  \n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        -80,
+        -160
+      ],
+      "id": "fc0330ce-c3d4-4211-a947-4632be9a7128",
+      "name": "Agendamento AI",
+      "notesInFlow": false,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "propertyName": "memory_state",
+        "key": "status-557988381612",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        -740,
+        -100
+      ],
+      "id": "48a0901e-3410-48d5-a9fe-23b56c08ce63",
+      "name": "Redis",
+      "alwaysOutputData": true,
+      "credentials": {
+        "redis": {
+          "id": "wlF4O0UQT5Suf5qb",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.toolThink",
+      "typeVersion": 1,
+      "position": [
+        100,
+        40
+      ],
+      "id": "17f02950-5cb6-4a52-aef8-f9e0ebc583eb",
+      "name": "Think"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Agendamento AI",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "create_order": {
+      "ai_tool": [
+        [
+          {
+            "node": "Agendamento AI",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "add_item_to_order": {
+      "ai_tool": [
+        [
+          {
+            "node": "Agendamento AI",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "remove_item_from_order": {
+      "ai_tool": [
+        [
+          {
+            "node": "Agendamento AI",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "update_order_status": {
+      "ai_tool": [
+        [
+          {
+            "node": "Agendamento AI",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "get_order_items": {
+      "ai_tool": [
+        [
+          {
+            "node": "Agendamento AI",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "Agendamento AI",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "Redis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config1": {
+      "main": [
+        [
+          {
+            "node": "Agendamento AI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "calcula_frete": {
+      "ai_tool": [
+        [
+          {
+            "node": "Agendamento AI",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "buscar_itens": {
+      "ai_tool": [
+        [
+          {
+            "node": "Agendamento AI",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "memory.set": {
+      "ai_tool": [
+        [
+          {
+            "node": "Agendamento AI",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Redis": {
+      "main": [
+        [
+          {
+            "node": "Config1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Think": {
+      "ai_tool": [
+        [
+          {
+            "node": "Agendamento AI",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "f63cb84c-3238-4a97-96bb-0546652cb6f8",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "1dfb32743644648a276cc34d3b8cd0a01d6b6ba4fd59776d06d5588058d2556c"
+  },
+  "id": "EMVvVQm7fQWbHupO",
+  "tags": []
+}

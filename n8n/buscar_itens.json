@@ -1,0 +1,116 @@
+{
+  "name": "buscar_itens",
+  "nodes": [
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "cardapio",
+        "returnAll": true,
+        "filterType": "string",
+        "filterString": "=em_estoque=eq.true&or=(nome.ilike.*{{$json.texto}}*,categoria.ilike.*{{$json.texto}}*,descricao.ilike.*{{$json.texto}}*)"
+      },
+      "name": "Query Cardapio",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        260,
+        0
+      ],
+      "id": "bb0ae41b-7c3f-4dd1-b9f8-b8790ecbae87",
+      "alwaysOutputData": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "dRptRTTwjGhSJwch",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const lista = items.map(i => i.json);\nconst texto = ($json.texto || '').trim();\n\n// 0) Detectar cumprimentos genéricos\nif (/^(bom dia|boa tarde|boa noite|olá|oi|e ai|oii?)/i.test(texto)) {\n  return [{\n    json: {\n      tipo: \"cumprimento\",\n      resposta: `${texto.charAt(0).toUpperCase() + texto.slice(1)}, em que posso ajudar hoje?`\n    }\n  }];\n}\n\n// 1) Se pediu detalhe (detalhe item N)\nconst detMatch = texto.match(/^(?:detalhe(?: o item)?)[\\s]+(\\d+)/i);\nif (detMatch) {\n  const idx = parseInt(detMatch[1], 10) - 1;\n  const it = lista[idx];\n  if (!it) {\n    return [{ json: { tipo: \"erro\", resposta: `Número inválido. Escolha entre 1 e ${lista.length}.` } }];\n  }\n  return [{\n    json: {\n      tipo: \"detalhe\",\n      descricaoCompleta: `${it.nome}: ${it.descricao}`,\n      resposta: `Detalhe de ${it.nome}:\\n${it.descricao}\\nQuantas unidades deseja?`\n    }\n  }];\n}\n\n// 2) Busca normal\nif (lista.length === 0) {\n  // tipo \"nenhum\" já é fallback natural\n  return [{ json: { tipo: \"nenhum\", resposta: `Não consegui encontrar opções para \"${texto}\". Por favor, tente outro termo.` } }];\n}\n\nif (lista.length === 1) {\n  const it = lista[0];\n  return [{\n    json: {\n      tipo: \"single\",\n      item: it.nome,\n      preco: parseFloat(it.preco),\n      descricao: it.descricao,\n      resposta: `Encontrei apenas ${it.nome} – R$ ${parseFloat(it.preco).toFixed(2)}.\\n${it.descricao}\\nQuantas unidades?`\n    }\n  }];\n}\n\n// 3) Seleção com limite de 5\nconst maxOpcoes = 5;\nconst top = lista.slice(0, maxOpcoes);\nconst restantes = lista.length - maxOpcoes;\n\nconst opTxt = top.map((it, idx) =>\n  `${idx + 1}) ${it.nome} – R$ ${parseFloat(it.preco).toFixed(2)}`\n).join(\"\\n\");\n\nlet resposta = `Encontrei estas opções:\\n${opTxt}`;\nif (restantes > 0) {\n  resposta += `\\n...e mais ${restantes} opções. Deseja refinar sua busca ou ver detalhes de algum item?`;\n} else {\n  resposta += `\\nQual número deseja?`;\n}\n\nreturn [{\n  json: {\n    tipo: \"selecao\",\n    opcoes: top.map(it => ({\n      nome: it.nome,\n      preco: parseFloat(it.preco),\n      descricao: it.descricao\n    })),\n    resposta\n  }\n}];\n"
+      },
+      "name": "Interpretar Lista",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        500,
+        0
+      ],
+      "id": "fa64a9ba-f2a4-44a3-82d6-cfceec629bd1"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "name": "Return Resposta",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        760,
+        0
+      ],
+      "id": "0f1e0d3b-25e3-4308-93cd-a7906d3c3bd8"
+    },
+    {
+      "parameters": {
+        "inputSource": "jsonExample",
+        "jsonExample": "{\n  \"phone\": \"557988381612\",\n  \"texto\": \"Costela bovina\"\n}"
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "def5e193-72e0-40d0-9f72-69d230fedd6d",
+      "name": "When Executed by Another Workflow"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Query Cardapio": {
+      "main": [
+        [
+          {
+            "node": "Interpretar Lista",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Interpretar Lista": {
+      "main": [
+        [
+          {
+            "node": "Return Resposta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Query Cardapio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "db07c683-bf2a-476b-9bc7-cc0e99421a95",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "1dfb32743644648a276cc34d3b8cd0a01d6b6ba4fd59776d06d5588058d2556c"
+  },
+  "id": "HzXXO6HfQxJDKyCJ",
+  "tags": []
+}

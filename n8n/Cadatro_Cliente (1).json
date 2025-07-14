@@ -1,0 +1,1251 @@
+{
+  "name": "Cadatro_Cliente",
+  "nodes": [
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "customers",
+        "returnAll": true,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "phone",
+              "condition": "eq",
+              "keyValue": "={{ $json.phone }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -800,
+        220
+      ],
+      "id": "cb09a6bd-0118-4fb6-98fe-6c19027b35ed",
+      "name": "Check Customer",
+      "alwaysOutputData": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "dRptRTTwjGhSJwch",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.evolution_api_url }}/message/sendText/{{ $vars.evolution_api_instance }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $vars.evolution_api_key }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "number",
+              "value": "={{ $json.phone }}"
+            },
+            {
+              "name": "text",
+              "value": "Seja bem-vindo! Como posso lhe chamar?"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        540,
+        -100
+      ],
+      "id": "e658f984-4e26-46e8-bb82-593a85e202c9",
+      "name": "Send Name Prompt"
+    },
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "phone"
+            },
+            {
+              "name": "body"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -1040,
+        220
+      ],
+      "id": "94e76784-4850-46d1-9cfc-3490724bc8b3",
+      "name": "Start"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.evolution_api_url }}/message/sendText/{{ $vars.evolution_api_instance }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $vars.evolution_api_key }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "number",
+              "value": "={{ $('Normalize Customer').item.json.phone }}"
+            },
+            {
+              "name": "text",
+              "value": "=Olá {{$json.cliente_name || 'cliente'}}, por favor informe o CEP do endereço de entrega (apenas números)."
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1100,
+        80
+      ],
+      "id": "189c8169-0693-4cbc-a0f0-5d4510f2ba53",
+      "name": "Send CEP Prompt"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Recebe { cep } do Set Test CEP Input\nconst cep = $('Start').first().json.body\nconst raw = (cep || '').toString().replace(/\\D/g, '');\nif (!/^\\d{8}$/.test(raw)) {\n  return [{ json: { error: 'CEP inválido.' } }];\n}\n\n// Consulta ViaCEP\nconst response = await this.helpers.httpRequest({\n  method: 'GET',\n  url: `https://viacep.com.br/ws/${raw}/json/`,\n  json: true,\n});\n\nif (response.erro) {\n  return [{ json: { error: 'CEP não encontrado.' } }];\n}\n\n// Normaliza texto: sem acentos, minúsculo, 1 espaço\nconst cleanText = (txt) =>\n  txt\n    .toLowerCase()\n    .normalize('NFD')\n    .replace(/\\p{Diacritic}/gu, '')\n    .replace(/\\s+/g, ' ')\n    .trim();\n\nconst rua   = cleanText(response.logradouro || '');\nconst bairro = cleanText(response.bairro || '');\nconst city  = `${response.localidade} - ${response.uf}`;\n\nconst clean_address = rua && bairro\n  ? `${rua}, ${bairro}`\n  : (rua || bairro || '');\n\nreturn [{\n  json: {\n    cep: raw,\n    clean_address,\n    city,\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        540,
+        280
+      ],
+      "id": "21bced79-f139-440f-b852-8b323fd8c90d",
+      "name": "Sanitize & ViaCEP"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.evolution_api_url }}/message/sendText/{{ $vars.evolution_api_instance }}\n",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $vars.evolution_api_key }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "number",
+              "value": "={{ $('Normalize Customer').item.json.phone }}"
+            },
+            {
+              "name": "text",
+              "value": "=Ótimo, o CEP corresponde a \n{{$('Sanitize & ViaCEP').item.json.clean_address}} – {{$('Sanitize & ViaCEP').item.json.city}}*. Qual é o **número** do imóvel?"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1100,
+        280
+      ],
+      "id": "dcd74f45-05e6-43c9-b43f-113cb10df776",
+      "name": "Send Number Prompt"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.evolution_api_url }}/message/sendText/{{ $vars.evolution_api_instance }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $vars.evolution_api_key }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "number",
+              "value": "={{ $('Normalize Customer').item.json.phone }}"
+            },
+            {
+              "name": "text",
+              "value": "=Tem algum complemento (apto, Condomínio/bloco, fundos)? Se não tiver, digite ‘não’."
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1100,
+        480
+      ],
+      "id": "68a6135b-601d-4ed9-8b4a-cb92dd6e47a6",
+      "name": "Send Complement Prompt"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Run Once for All Items: reúne phone, nome e monta full_address\nconst  phone = $('Normalize Customer').first().json.phone;\nconst  customer_name =   $('Check Customer').first().json.cliente_name;\n// 2) Endereço limpo do Sanitize & ViaCEP\nconst via = $items(\"Normalize Customer\")[0].json;\n// Separa rua e bairro\nconst parts        = (via.existingAddress || \"\").split(',');\nconst street       = parts[0].trim() || \"\";\nconst neighborhood = (parts[1] || \"\").trim();\n\n// 3) Número do imóvel\n\nconst numero  = ($('Check Customer').first().json.numero || \"\").toString().trim();\n\n// 4) Complemento\nconst compItem = $items(\"Capture Complement\")[0].json;\nconst compRaw  = (compItem.complemento || \"\").toString().trim().toLowerCase();\nconst complemento = (compRaw && compRaw !== \"nao\")\n  ? `, ${compRaw}`\n  : \"\";\n\n// 5) Cidade\nconst city = via.city || \"\";\n\n// Monta: rua, número+complemento, bairro – cidade\nlet full_address = `${street}, ${numero}${complemento}`;\nif (neighborhood) full_address += `, ${neighborhood}`;\nfull_address += ` – ${city}`;\n\n// 6) Retorna phone, customer_name e full_address\nreturn [\n  {\n    json: {\n      phone,\n      customer_name,\n      full_address,\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        540,
+        640
+      ],
+      "id": "146cf5c6-fcef-4b4e-a3ea-8f28c12c2ee4",
+      "name": "Build Full Address",
+      "executeOnce": false
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cb261bbf-4d40-4a55-94f2-bf0e437e1a4f",
+              "leftValue": "={{ $json.id !== undefined }}",
+              "rightValue": "\"\"",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        820,
+        640
+      ],
+      "id": "36b9fe71-5748-4f40-9d84-84571ba0a294",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Function node – normaliza saída do Supabase e preserva o telefone de input\n// 'items' é sempre um array (graças ao Always Output Data)\n\nconst records = items; \n\n// Pega o phone seja do supabase (quando existir) ou do input de teste\nconst phoneFromSupabase = records[0].json.phone;\nconst phoneFromInput    = $node[\"Start\"].json.phone; // ou do Execute Workflow no fluxo principal\nconst phone = phoneFromSupabase || phoneFromInput;\n\n// Se não há cliente (sem id), é novo usuário\nif (!records[0].json.id) {\n  return [{\n    json: {\n      phone,\n      isNewUser: true,\n    }\n  }];\n}\n\n// Caso exista\nconst cust = records[0].json;\nreturn [{\n  json: {\n    phone,\n    isNewUser:  false,\n    hasAddress: Boolean(cust.location),\n    customerId: cust.id,\n    existingAddress: cust.location,\n    existingLat:     cust.lat,\n    existingLng:     cust.lng,\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -320,
+        220
+      ],
+      "id": "5c3bfac5-2c11-45c5-a696-1d6add39a1fd",
+      "name": "Normalize Customer",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "url": "https://api.mapbox.com/search/geocode/v6/forward",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "access_token",
+              "value": "=pk.eyJ1Ijoic21hcnRodWJiciIsImEiOiJjbWFsZW56MHkwN3VkMmtvandkcHo3OXhwIn0.pOpOxMdvyp7BWcgWbHPPbw"
+            },
+            {
+              "name": "q",
+              "value": "={{ $json.full_address }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        520,
+        880
+      ],
+      "id": "fe67335d-bb01-4022-a1c7-df90bd129000",
+      "name": "mapBox_Address-HTTP Request"
+    },
+    {
+      "parameters": {
+        "jsCode": "/**\n * Function node – converte primeiro resultado do Mapbox\n * Entrada: $json.data  (FeatureCollection como string ou objeto)\n * Saída:   [{json:{lat, long, formatted_address}}]\n */\nconst out = [];\n\n// 1 – carrega a FeatureCollection\nlet fc = $input.all()[0]?.json?.data;\nif (!fc) return out;\n\nif (typeof fc === 'string') {\n  fc = JSON.parse(fc);\n}\n\n// 2 – pega só a primeira feature\nconst feature = fc.features?.[0];\nif (feature?.geometry?.coordinates?.length >= 2) {\n  // Mapbox devolve [lon, lat]\n  const [lng, lat] = feature.geometry.coordinates;\n\n  const formatted_address =\n    feature.properties?.full_address ??\n    feature.properties?.place_formatted ??\n    feature.properties?.name;\n\n  out.push({\n    json: { lat, long: lng, formatted_address },\n  });\n}\n\nreturn out;\n\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        820,
+        880
+      ],
+      "id": "06239fc2-e23e-42c3-a78e-27257be66248",
+      "name": "Parse Coordinates"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parâmetros do restaurante (ajuste aqui)\nconst RESTAURANT_LAT = -10.990631369412382;\nconst RESTAURANT_LNG = -37.051365559524186;\n\n// Helper para converter graus em radianos\nconst toRad = d => d * Math.PI / 180;\n\n// Coordenadas do cliente\nconst lat2 = parseFloat($json.lat);\nconst lon2 = parseFloat($json.long);\nconst lat1 = RESTAURANT_LAT;\nconst lon1 = RESTAURANT_LNG;\n\n// Haversine\nconst R = 6371; // Raio da Terra em km\nconst dLat = toRad(lat2 - lat1);\nconst dLon = toRad(lon2 - lon1);\nconst a = Math.sin(dLat/2)**2 +\n          Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *\n          Math.sin(dLon/2)**2;\nconst distance = 2 * R * Math.asin(Math.sqrt(a));\n\n// Retorna json incluindo o campo `distancia` (km, duas casas)\nreturn [\n  {\n    json: {\n      ...$json,\n      distancia: +distance.toFixed(2)\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1040,
+        880
+      ],
+      "id": "12045f06-8e24-49f8-bbfd-4519dc2fa83b",
+      "name": "Calculate Distance"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "8e0297c2-bef7-4b46-b748-4a0f8dff0e36",
+              "name": "phone",
+              "value": "={{ $json.phone }}",
+              "type": "string"
+            },
+            {
+              "id": "40b765af-b224-47e5-a649-60d9dfcfb062",
+              "name": "customer_name",
+              "value": "={{ $json.cliente_name }}",
+              "type": "string"
+            },
+            {
+              "id": "9a8c5ac7-f808-42e1-9bd6-6cc4b6684654",
+              "name": "full_address",
+              "value": "={{ $json.location }}",
+              "type": "string"
+            },
+            {
+              "id": "104f30e7-3749-4749-8dd6-97e4da98c33e",
+              "name": "lat",
+              "value": "={{ $json.lat }}",
+              "type": "number"
+            },
+            {
+              "id": "5eb8f46b-dc32-4064-9b11-7370c2ea810a",
+              "name": "long",
+              "value": "={{ $json.long }}",
+              "type": "number"
+            },
+            {
+              "id": "fb5facae-05ef-44e2-8fff-a7e64f0ee09c",
+              "name": "distancia",
+              "value": "={{ $json.distance }}",
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1560,
+        880
+      ],
+      "id": "bb345e67-0f7f-49e6-baa8-2aaab6f43720",
+      "name": "Finalize Subflow Output"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "17789f78-82df-424b-b1f7-10ad1e4709d3",
+              "name": "numero",
+              "value": "={{ $('Start').item.json.body }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        280,
+        480
+      ],
+      "id": "42dbd930-358e-4e25-a4ae-20aa07253d34",
+      "name": "Capture Number"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f4ed7beb-a8f5-4918-b669-78910f3ca0b5",
+              "name": "complemento",
+              "value": "={{ $('Start').item.json.body }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        280,
+        640
+      ],
+      "id": "a5b2e10b-ff08-4458-b9d3-a7b259418bc6",
+      "name": "Capture Complement"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.isNewUser }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    },
+                    "id": "533ae69e-b2ef-413f-aa58-06efadfa8130"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "new_client"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "468659d8-1338-4293-a07c-98123cb571cf",
+                    "leftValue": "={{ $('Check Customer').item.json.registration_step=== \"asked_name\"}}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "asked_name"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "d92af2c5-2f0e-4de3-b7af-9f2d1d36eee5",
+                    "leftValue": "={{$('Check Customer').item.json.registration_step === \"asked_cep\"}}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "asked_cep"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "72d3afbe-dcad-4d12-9412-7cfbe965979e",
+                    "leftValue": "={{$('Check Customer').item.json.registration_step === \"asked_number\"}}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "asked_number"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "1c9e69cf-5d22-4e75-83c4-16486021c7b7",
+                    "leftValue": "={{$('Check Customer').item.json.registration_step === \"asked_complement\"}}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "asked_complement"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "0e0569a1-6fb9-4491-b7f7-c97ca12f8170",
+                    "leftValue": "={{$('Check Customer').item.json.registration_step === \"updated\"}}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "updated"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "ebb2fdbc-ebbb-4ecc-bb74-75b1ec0d1577",
+                    "leftValue": "",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        -80,
+        140
+      ],
+      "id": "86e67ce5-333f-4660-966b-69b7d861235c",
+      "name": "Registration Step"
+    },
+    {
+      "parameters": {
+        "tableId": "customers",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "phone",
+              "fieldValue": "={{ $json.phone }}"
+            },
+            {
+              "fieldId": "registration_step",
+              "fieldValue": "asked_name"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        300,
+        -100
+      ],
+      "id": "6176701d-b6f1-4c6e-ac55-0355694e535b",
+      "name": "Create New Customer",
+      "credentials": {
+        "supabaseApi": {
+          "id": "dRptRTTwjGhSJwch",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c9e1a687-e293-49d8-8de9-535b6d8d4eaa",
+              "name": "customer_name",
+              "value": "={{ $('Start').item.json.body }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        280,
+        80
+      ],
+      "id": "e194e3c7-9e08-4ed1-b2d0-186f9c19ea20",
+      "name": "Capture Name"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "9c8440e6-31fc-4398-b5ee-063e1b06e953",
+              "name": "cep",
+              "value": "={{ $('Start').item.json.body }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        280,
+        280
+      ],
+      "id": "5a8854a3-77c6-44f4-8a04-bfa9281a81d0",
+      "name": "Capture CEP"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "customers",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "phone",
+              "condition": "eq",
+              "keyValue": "={{ $('Normalize Customer').item.json.phone }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "cliente_name",
+              "fieldValue": "={{$json.customer_name}}"
+            },
+            {
+              "fieldId": "registration_step",
+              "fieldValue": "asked_cep"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        820,
+        80
+      ],
+      "id": "11ba393a-78d7-4dd5-81e5-ef95a4ee27d3",
+      "name": "Update Name & Step",
+      "credentials": {
+        "supabaseApi": {
+          "id": "dRptRTTwjGhSJwch",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "customers",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "phone",
+              "condition": "eq",
+              "keyValue": "={{ $('Normalize Customer').item.json.phone }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "registration_step",
+              "fieldValue": "=asked_number"
+            },
+            {
+              "fieldId": "location",
+              "fieldValue": "={{ $json.clean_address }} – {{ $json.city }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        820,
+        280
+      ],
+      "id": "e0a77c4c-4913-4509-a511-4cdcc4be942c",
+      "name": "Update CEP & Step",
+      "credentials": {
+        "supabaseApi": {
+          "id": "dRptRTTwjGhSJwch",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "customers",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "phone",
+              "condition": "eq",
+              "keyValue": "={{ $('Normalize Customer').item.json.phone }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "location",
+              "fieldValue": "={{ $('Build Full Address').item.json.full_address }}"
+            },
+            {
+              "fieldId": "lat",
+              "fieldValue": "={{ $json.lat }}"
+            },
+            {
+              "fieldId": "long",
+              "fieldValue": "={{ $json.long }}"
+            },
+            {
+              "fieldId": "distance",
+              "fieldValue": "={{ $json.distancia }}"
+            },
+            {
+              "fieldId": "registration_step",
+              "fieldValue": "updated"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1260,
+        880
+      ],
+      "id": "7a9ea851-6d2a-4e35-bdc5-4df6088e92b8",
+      "name": "Update Customer Final",
+      "credentials": {
+        "supabaseApi": {
+          "id": "dRptRTTwjGhSJwch",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "customers",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "phone",
+              "condition": "eq",
+              "keyValue": "={{ $('Normalize Customer').item.json.phone }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "registration_step",
+              "fieldValue": "=asked_complement"
+            },
+            {
+              "fieldId": "numero",
+              "fieldValue": "={{ $json.numero }} "
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        820,
+        480
+      ],
+      "id": "2d08919b-1d5e-46be-a727-8ca3201dc95b",
+      "name": "Update Number & Step",
+      "credentials": {
+        "supabaseApi": {
+          "id": "dRptRTTwjGhSJwch",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "8e0297c2-bef7-4b46-b748-4a0f8dff0e36",
+              "name": "phone",
+              "value": "={{ $json.phone }}",
+              "type": "string"
+            },
+            {
+              "id": "40b765af-b224-47e5-a649-60d9dfcfb062",
+              "name": "customer_name",
+              "value": "={{ $json.cliente_name }}",
+              "type": "string"
+            },
+            {
+              "id": "9a8c5ac7-f808-42e1-9bd6-6cc4b6684654",
+              "name": "full_address",
+              "value": "={{ $json.location }}",
+              "type": "string"
+            },
+            {
+              "id": "104f30e7-3749-4749-8dd6-97e4da98c33e",
+              "name": "lat",
+              "value": "={{ $json.lat }}",
+              "type": "number"
+            },
+            {
+              "id": "5eb8f46b-dc32-4064-9b11-7370c2ea810a",
+              "name": "long",
+              "value": "={{ $json.long }}",
+              "type": "number"
+            },
+            {
+              "id": "fb5facae-05ef-44e2-8fff-a7e64f0ee09c",
+              "name": "distancia",
+              "value": "={{ $json.distance }}",
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -420,
+        -20
+      ],
+      "id": "548b8da9-047d-423c-b792-6429bf6ac6d1",
+      "name": "Enviar Dados Cliente"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "eb30f082-8081-4a01-9340-9c56c19ce48a",
+              "leftValue": "={{ $json.registration_step }}",
+              "rightValue": "updated",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -580,
+        220
+      ],
+      "id": "2a40a6e3-55f5-4f2a-87f1-37773c90e5dd",
+      "name": "Cliente End Atualizado"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Check Customer": {
+      "main": [
+        [
+          {
+            "node": "Cliente End Atualizado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "Check Customer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sanitize & ViaCEP": {
+      "main": [
+        [
+          {
+            "node": "Update CEP & Step",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Full Address": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [],
+        [
+          {
+            "node": "mapBox_Address-HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Customer": {
+      "main": [
+        [
+          {
+            "node": "Registration Step",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "mapBox_Address-HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Parse Coordinates",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Coordinates": {
+      "main": [
+        [
+          {
+            "node": "Calculate Distance",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate Distance": {
+      "main": [
+        [
+          {
+            "node": "Update Customer Final",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Capture Number": {
+      "main": [
+        [
+          {
+            "node": "Update Number & Step",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Capture Complement": {
+      "main": [
+        [
+          {
+            "node": "Build Full Address",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Registration Step": {
+      "main": [
+        [
+          {
+            "node": "Create New Customer",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Capture Name",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Capture CEP",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Capture Number",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Capture Complement",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create New Customer": {
+      "main": [
+        [
+          {
+            "node": "Send Name Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Capture Name": {
+      "main": [
+        [
+          {
+            "node": "Update Name & Step",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Capture CEP": {
+      "main": [
+        [
+          {
+            "node": "Sanitize & ViaCEP",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Name & Step": {
+      "main": [
+        [
+          {
+            "node": "Send CEP Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update CEP & Step": {
+      "main": [
+        [
+          {
+            "node": "Send Number Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Customer Final": {
+      "main": [
+        [
+          {
+            "node": "Finalize Subflow Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Number & Step": {
+      "main": [
+        [
+          {
+            "node": "Send Complement Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cliente End Atualizado": {
+      "main": [
+        [
+          {
+            "node": "Enviar Dados Cliente",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Normalize Customer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "7cb250c7-8c06-4c67-925e-094f94e41c63",
+  "meta": {
+    "instanceId": "1dfb32743644648a276cc34d3b8cd0a01d6b6ba4fd59776d06d5588058d2556c"
+  },
+  "id": "aiRH2QEo2tX3YeDX",
+  "tags": []
+}

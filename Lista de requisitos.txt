@@ -1,0 +1,4 @@
+Lista de requisitos
+1 - Quando cliente interagir verificar se existe pedido em aberto(Status diferente de cancelado /finalizado) e
+ perguntar se quer tratar deste pedido ou criar um novo. Se o cliente desejar falar deste pedido o fluxo para e deixa um humano atender o cliente. caso contrário mantem o fluxo de atendimento
+2 - 

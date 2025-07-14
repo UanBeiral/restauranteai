@@ -1,0 +1,642 @@
+{
+  "name": "Agente",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -1180,
+        140
+      ],
+      "id": "e0a04e2d-b9e3-4eb3-8c11-b21c67381f76",
+      "name": "When chat message received",
+      "webhookId": "85e0f109-5c48-4392-9bf8-845fc4127d02"
+    },
+    {
+      "parameters": {
+        "model": "gpt-4.1-mini-2025-04-14",
+        "options": {
+          "temperature": 0.7
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1,
+      "position": [
+        -200,
+        40
+      ],
+      "id": "7570f3b2-6694-4b7d-9313-f85cb7f9f468",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "XsdEpSP5P8jLT4KH",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.text }}",
+        "options": {
+          "systemMessage": "==== System Prompt ===\n\nVocê é um agente de atendimento da Bread&Meat, especializado em carnes e acompanhamentos por delivery via WhatsApp.  \nNão misture mensagens internas (chamadas de ferramentas, logs, variáveis) com o que é enviado ao cliente.\n\nFerramentas disponíveis (use exatamente estes nomes ao chamar):  \n- buscar_itens  \n- create_order  \n- add_item_to_order  \n- remove_item_from_order  \n- calcula_frete  \n- update_order_status  \n- get_order_items  \n- memory.get  \n- memory.set  \n\nDescrição de cada ferramenta:  \n• buscar_itens(input: { phone: string, texto: string }) → retorna { opcoes: array, resposta: string }  \n• create_order(input: { phone: string, customer: string, address: string, distance: number }) → retorna { order_id: string }  \n• add_item_to_order(input: { order_id: string, nome: string, preco: number, quantidade: number })  \n• remove_item_from_order(input: { order_id: string, nome: string })  \n• calcula_frete(input: { distance: number }) → retorna { frete: number }  \n• update_order_status(input: { order_id: string, status: string })  \n• get_order_items(input: { order_id: string }) → retorna { itens: array }  \n• memory.get(input: { key: string }) → retorna { value: object }  \n• memory.set(input: { key: string, value: object })  \n\nExemplo de fluxo de chamada para buscar categoria:  \n1) Usuário envia “costela bovina”  \n2) Agente executa:\n   execute buscar_itens \"input\": { \"phone\": \"{{$json.phone}}\", \"texto\": \"{{$json.text}}\" }  \n3) Em seguida:\n   execute memory.set \"input\": {\n     \"key\": \"status-{{$json.phone}}\",\n     \"value\": {\n       \"ultimo_tipo\": \"selecao\",\n       \"ultimas_opcoes\": response.opcoes,\n       \"order_id\": null,\n       \"last_action\": \"awaiting_item_number\"\n     }\n   }  \n4) Por fim, responde ao cliente com o texto puro:  \n   {{ response.resposta }}  \n\nDetalhes do fluxo de interação:\n0. Carregar memória  \n   execute memory.get \"input\": { \"key\": \"status-{{$json.phone}}\" }  \n   — interno: memory_state = response.value || {}\n\n1. Saudação inicial  \n   Se memory_state.last_action for null:  \n     execute memory.set \"input\": {\n       \"key\": \"status-{{$json.phone}}\",\n       \"value\": { \n            \"ultimo_tipo\": null, \n            \"ultimas_opcoes\": [], \n            \"order_id\": null, \n            \"last_action\": \"awaiting_category\" \n        }\n     }  \n     texto puro: “Olá, {{$json.customer_name}}! Aqui está nosso cardápio. Qual categoria você quer ver primeiro?”  \n     Pare.\n\n2. Identificação de Categoria  \n   Se memory_state.last_action == \"awaiting_category\":  \n     execute buscar_itens \"input\": { \"phone\": \"{{$json.phone}}\", \"texto\": \"{{$json.text}}\" }  \n     — interno: memory_state.ultimas_opcoes = response.opcoes; memory_state.ultimo_tipo = \"selecao\"; memory_state.order_id = null; memory_state.last_action = \"awaiting_item_number\"  \n     execute memory.set \"input\": {\n        \"key\": \"status-{{$json.phone}}\",\n        \"value\": {\n            \"ultimo_tipo\": \"selecao\",\n            \"ultimas_opcoes\": response.opcoes,\n            \"order_id\": null,\n            \"last_action\": \"awaiting_item_number\"\n        }\n     }\n  \n     texto puro: {{ response.resposta }}  \n     Pare.\n\n3. Seleção de Item  \n   Se memory_state.ultimo_tipo == \"selecao\" e o texto for um número inteiro N:  \n        item = memory_state.ultimas_opcoes[N-1]  \n        Se !item\n            texto puro: “Número inválido. Escolha entre 1 e {{ memory_state.ultimas_opcoes.length }}.”  \n            Pare.\n          \n        Se memory_state.order_id for null:\n            execute create_order \"input\": { \n                    \"phone\": \"{{$json.phone}}\", \n                    \"customer\": \"{{$json.customer_name}}\", \n                    \"address\": \"{{$json.full_address}}\", \n                    \"distance\": \"{{$json.distancia}}\" \n                }\n        \n\n        — interno: memory_state.order_id = response.order_id  \n        execute memory.set \"input\": { \n                \"key\": \"status-{{$json.phone}}\", \n                \"value\": memory_state \n        }  \n        execute add_item_to_order \"input\": { \n            \"order_id\": memory_state.order_id, \n            \"nome\": item.nome, \n            \"preco\": item.preco, \n            \"quantidade\": item.quantidade \n        }          \n        — interno: memory_state.ultimo_tipo = null  \n        execute memory.set \"input\": { \n            \"key\": \"status-{{$json.phone}}\", \n            \"value\": memory_state \n        }  \n        texto puro: “Item ‘{{ item.nome }}’ adicionado ao pedido. Algo mais?”      \nPare.\n\n4. Cálculo de Frete  \n   Se texto for “não” ou “finalizar” e memory_state.last_action != \"pending_finalize\":  \n     execute calcula_frete \"input\": { \"distance\": {{$json.distancia}} }  \n     — interno: memory_state.last_action = \"pending_finalize\"  \n     execute memory.set \"input\": { \"key\": \"status-{{$json.phone}}\", \"value\": memory_state }  \n     Pare.\n\n5. Apresentar Frete  \n   Se memory_state.last_action == \"pending_finalize\" e response.frete existir e texto não for confirmação:  \n     texto puro: “Frete: R$ {{ response.frete.toFixed(2) }}. Deseja confirmar o pedido?”  \n     Pare.\n\n6. Confirmação Final  \n   Se memory_state.last_action == \"pending_finalize\" e texto for “sim”/“ok”/etc:  \n     execute update_order_status \"input\": { \"order_id\": memory_state.order_id, \"status\": \"solicitado\" }  \n     execute get_order_items \"input\": { \"order_id\": memory_state.order_id }  \n     — interno: total = Σ(itens.preco * itens.quantidade)  \n     texto puro:  \n       “Pedido #{{ memory_state.order_id }} confirmado!  \n        Itens:  \n        {{ response.itens.map(i => `${i.quantidade}x ${i.nome} – R$ ${i.preco.toFixed(2)}`).join('\\n') }}  \n        Total: R$ ${total.toFixed(2)}”  \n     execute memory.set \"input\": {\n       \"key\": \"status-{{$json.phone}}\",\n       \"value\": { \"ultimo_tipo\": null, \"ultimas_opcoes\": [], \"order_id\": null, \"last_action\": null }\n     }  \n     Pare.\n\n=== User Prompt ===\n\n{{ $json.text }}\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        40,
+        -220
+      ],
+      "id": "fc0330ce-c3d4-4211-a947-4632be9a7128",
+      "name": "Agendamento AI",
+      "notesInFlow": false
+    },
+    {
+      "parameters": {
+        "tableId": "pedidos",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "phone",
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues0_Field_Value', ``, 'string') }}"
+            },
+            {
+              "fieldId": "customer_name",
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues1_Field_Value', ``, 'string') }}"
+            },
+            {
+              "fieldId": "address",
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues2_Field_Value', ``, 'string') }}"
+            },
+            {
+              "fieldId": "distance_km",
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues3_Field_Value', ``, 'string') }}"
+            },
+            {
+              "fieldId": "status",
+              "fieldValue": "em_cadastramento"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [
+        140,
+        380
+      ],
+      "id": "64dc61a6-7bf3-4442-9db2-c6412f4ecbb3",
+      "name": "create_order",
+      "credentials": {
+        "supabaseApi": {
+          "id": "dRptRTTwjGhSJwch",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "tableId": "order_items",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "order_id",
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues0_Field_Value', ``, 'string') }}"
+            },
+            {
+              "fieldId": "item_name",
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues1_Field_Value', ``, 'string') }}"
+            },
+            {
+              "fieldId": "price",
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues2_Field_Value', ``, 'string') }}"
+            },
+            {
+              "fieldId": "quantity",
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues3_Field_Value', ``, 'string') }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [
+        320,
+        380
+      ],
+      "id": "6dc41412-fb11-4487-9de9-617308318eeb",
+      "name": "add_item_to_order",
+      "credentials": {
+        "supabaseApi": {
+          "id": "dRptRTTwjGhSJwch",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "tableId": "order_items",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "order_id",
+              "condition": "eq",
+              "keyValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('conditions0_Field_Value', ``, 'string') }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [
+        500,
+        380
+      ],
+      "id": "87372c85-90bb-4c07-96a1-5330a0632ad1",
+      "name": "remove_item_from_order",
+      "credentials": {
+        "supabaseApi": {
+          "id": "dRptRTTwjGhSJwch",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "pedidos",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('conditions0_Field_Value', ``, 'string') }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "status",
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues0_Field_Value', ``, 'string') }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [
+        680,
+        380
+      ],
+      "id": "010d1220-67be-4d99-864a-278cfd6cd7ff",
+      "name": "update_order_status",
+      "credentials": {
+        "supabaseApi": {
+          "id": "dRptRTTwjGhSJwch",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "order_items",
+        "returnAll": true,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "order_id",
+              "condition": "eq",
+              "keyValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('conditions0_Field_Value', ``, 'string') }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [
+        860,
+        380
+      ],
+      "id": "c421acfd-c7c3-4c49-bc23-b268e77e7c4a",
+      "name": "get_order_items",
+      "credentials": {
+        "supabaseApi": {
+          "id": "dRptRTTwjGhSJwch",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $json.phone }}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryRedisChat",
+      "typeVersion": 1.4,
+      "position": [
+        -60,
+        180
+      ],
+      "id": "4af99428-7636-4b2e-a89f-d3b649da6060",
+      "name": "memory",
+      "credentials": {
+        "redis": {
+          "id": "wlF4O0UQT5Suf5qb",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "69918e5c-6cbf-44a1-a0a8-e6bdd9646860",
+              "name": "text",
+              "value": "={{ $json.chatInput }}",
+              "type": "string"
+            },
+            {
+              "id": "d5f56632-01ff-492a-98f1-c4f4dd7cc601",
+              "name": "session_id",
+              "value": "={{ $json.sessionId }}",
+              "type": "string"
+            },
+            {
+              "id": "85351078-014d-476b-a79d-1b9cf0d604d9",
+              "name": "date_time",
+              "value": "={{ $now.format('yyyy-MM-dd')}}",
+              "type": "string"
+            },
+            {
+              "id": "142e0a72-710c-4497-9dae-d6c6bc9511e8",
+              "name": "week_day",
+              "value": "={{ $today.weekdayLong}}",
+              "type": "string"
+            },
+            {
+              "id": "17dd323e-622c-48d5-b870-86ed37aa7067",
+              "name": "horario",
+              "value": "={{ $now.format('HH:mm:ss')}}",
+              "type": "string"
+            },
+            {
+              "id": "b45baf98-0908-44ba-bb24-051e838ccf40",
+              "name": "name",
+              "value": "=Uan",
+              "type": "string"
+            },
+            {
+              "id": "957f3018-b2e2-4a3d-a278-b6406c259f94",
+              "name": "location",
+              "value": "=rua projetada 2, 272, apartamento 601, bloco 5., madre paulina – São Cristóvão - SE – ",
+              "type": "string"
+            },
+            {
+              "id": "26024e25-594a-4572-884f-9b79916a9f2e",
+              "name": "customer_name",
+              "value": "=Uan",
+              "type": "string"
+            },
+            {
+              "id": "703c9c77-1660-4583-803c-1353c1d20778",
+              "name": "phone",
+              "value": "=557988381612",
+              "type": "string"
+            },
+            {
+              "id": "a6303600-ad4e-4839-b6fb-f84c0768c09a",
+              "name": "full_address",
+              "value": "=rua projetada 2, 272, apartamento 601, bloco 5., madre paulina – São Cristóvão - SE – ",
+              "type": "string"
+            },
+            {
+              "id": "26281099-e2c7-4938-87d2-699ea7655513",
+              "name": "lat",
+              "value": "=-10.989073",
+              "type": "string"
+            },
+            {
+              "id": "d4a99a36-ca92-4e86-ab72-fc8d53d931b8",
+              "name": "long",
+              "value": "=-37.053912",
+              "type": "string"
+            },
+            {
+              "id": "51c300fc-ccd3-4dbc-b171-29544381c6ad",
+              "name": "distancia",
+              "value": 10,
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -640,
+        -60
+      ],
+      "id": "03eb03f7-9afb-4b5e-913d-313c72b1f01a",
+      "name": "Config1"
+    },
+    {
+      "parameters": {
+        "description": "Chame esta tool para calcula o frete",
+        "workflowId": {
+          "__rl": true,
+          "value": "f8mXHkW39Nmgj7bp",
+          "mode": "list",
+          "cachedResultName": "Calcula-Frete"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "distance": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('distance', ``, 'number') }}"
+          },
+          "matchingColumns": [
+            "distance"
+          ],
+          "schema": [
+            {
+              "id": "distance",
+              "displayName": "distance",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        600,
+        160
+      ],
+      "id": "1dbff0ad-171f-4954-90dd-fd220ab762a3",
+      "name": "calcula_frete"
+    },
+    {
+      "parameters": {
+        "description": "Chame esta tool para buscar items do cardapio",
+        "workflowId": {
+          "__rl": true,
+          "value": "HzXXO6HfQxJDKyCJ",
+          "mode": "list",
+          "cachedResultName": "buscar_itens"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "phone": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('phone', ``, 'string') }}",
+            "texto": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('texto', ``, 'string') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "phone",
+              "displayName": "phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "texto",
+              "displayName": "texto",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        440,
+        160
+      ],
+      "id": "6c527067-ace6-452e-80f0-9d2c4ab16e28",
+      "name": "buscar_itens"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "propertyName": "value",
+        "key": "=status-{{$json.phone}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.redisTool",
+      "typeVersion": 1,
+      "position": [
+        620,
+        0
+      ],
+      "id": "29e2bfee-15df-4dce-936c-e6f01792dd17",
+      "name": "memory.get",
+      "credentials": {
+        "redis": {
+          "id": "wlF4O0UQT5Suf5qb",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "set",
+        "key": "=status-{{ $json.phone }}",
+        "value": "={{ $fromAI('Value', ``, 'string') }}"
+      },
+      "type": "n8n-nodes-base.redisTool",
+      "typeVersion": 1,
+      "position": [
+        780,
+        -40
+      ],
+      "id": "1ed724a5-aba7-4c7e-829b-a57b89f7be8c",
+      "name": "memory.set",
+      "credentials": {
+        "redis": {
+          "id": "wlF4O0UQT5Suf5qb",
+          "name": "Redis account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Agendamento AI",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "create_order": {
+      "ai_tool": [
+        [
+          {
+            "node": "Agendamento AI",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "add_item_to_order": {
+      "ai_tool": [
+        [
+          {
+            "node": "Agendamento AI",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "remove_item_from_order": {
+      "ai_tool": [
+        [
+          {
+            "node": "Agendamento AI",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "update_order_status": {
+      "ai_tool": [
+        [
+          {
+            "node": "Agendamento AI",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "get_order_items": {
+      "ai_tool": [
+        [
+          {
+            "node": "Agendamento AI",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "Agendamento AI",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "Config1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config1": {
+      "main": [
+        [
+          {
+            "node": "Agendamento AI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "calcula_frete": {
+      "ai_tool": [
+        [
+          {
+            "node": "Agendamento AI",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "buscar_itens": {
+      "ai_tool": [
+        [
+          {
+            "node": "Agendamento AI",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "memory.get": {
+      "ai_tool": [
+        [
+          {
+            "node": "Agendamento AI",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "memory.set": {
+      "ai_tool": [
+        [
+          {
+            "node": "Agendamento AI",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "df5e1d41-a00e-4d32-a8b7-97749791ead3",
+  "meta": {
+    "instanceId": "1dfb32743644648a276cc34d3b8cd0a01d6b6ba4fd59776d06d5588058d2556c"
+  },
+  "id": "EMVvVQm7fQWbHupO",
+  "tags": []
+}

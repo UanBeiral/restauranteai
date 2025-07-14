@@ -1,0 +1,362 @@
+{
+  "name": "del_redis_supa",
+  "nodes": [
+    {
+      "parameters": {
+        "operation": "delete",
+        "key": "=pedido-557988381612"
+      },
+      "name": "Apagar Chave",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        -100,
+        160
+      ],
+      "id": "6b3b7b08-def7-443c-89c9-db9d910486fa",
+      "credentials": {
+        "redis": {
+          "id": "wlF4O0UQT5Suf5qb",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -380,
+        160
+      ],
+      "id": "63cce9f4-4a76-410d-a9d2-a51ca43fe796",
+      "name": "When clicking ‘Test workflow’"
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "key": "=557598307594"
+      },
+      "name": "Apagar Chave2",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        280,
+        160
+      ],
+      "id": "fb17222d-413f-41a4-9f5b-9db3e797e635",
+      "credentials": {
+        "redis": {
+          "id": "wlF4O0UQT5Suf5qb",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "key": "=pedido-557598307594"
+      },
+      "name": "Apagar Chave3",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        500,
+        160
+      ],
+      "id": "0de8d67c-62f3-4d15-961b-edcf592bb521",
+      "credentials": {
+        "redis": {
+          "id": "wlF4O0UQT5Suf5qb",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "key": "=5579883981612"
+      },
+      "id": "b6870aea-1ab1-4c6e-b99b-056cc95451a1",
+      "name": "RedisPushMsgs",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        260,
+        -120
+      ],
+      "credentials": {
+        "redis": {
+          "id": "wlF4O0UQT5Suf5qb",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "key": "=msgs-557988381612"
+      },
+      "name": "Apagar Chave4",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        700,
+        160
+      ],
+      "id": "5f7c2caf-8294-4d86-b2bf-926e435ccd18",
+      "credentials": {
+        "redis": {
+          "id": "wlF4O0UQT5Suf5qb",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "tableId": "chats",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "lt",
+              "keyValue": "10000"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -160,
+        420
+      ],
+      "id": "56bf5111-ad92-4ceb-8854-de6eb48bf9f8",
+      "name": "Supabase",
+      "alwaysOutputData": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "dRptRTTwjGhSJwch",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "tableId": "chat_messages",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "lt",
+              "keyValue": "10000"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        60,
+        420
+      ],
+      "id": "e1b1d5ab-68ff-4f8f-9b01-ad514ba607a4",
+      "name": "Supabase1",
+      "credentials": {
+        "supabaseApi": {
+          "id": "dRptRTTwjGhSJwch",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "keys",
+        "keyPattern": "=status*"
+      },
+      "name": "status",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        -60,
+        -120
+      ],
+      "id": "a071fe00-e662-4aeb-b047-0bceafc1d5d5",
+      "credentials": {
+        "redis": {
+          "id": "wlF4O0UQT5Suf5qb",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "key": "=557988381612"
+      },
+      "name": "557988381612",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        100,
+        160
+      ],
+      "id": "d62113a9-e40d-4d1f-b78b-8304d09099f4",
+      "credentials": {
+        "redis": {
+          "id": "wlF4O0UQT5Suf5qb",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "key": "=status-557988381612"
+      },
+      "name": "Apagar status-557988381612",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        920,
+        180
+      ],
+      "id": "7985445a-e680-470e-a869-85076feaae75",
+      "credentials": {
+        "redis": {
+          "id": "wlF4O0UQT5Suf5qb",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "keys",
+        "keyPattern": "=*"
+      },
+      "name": "busca",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        -320,
+        -120
+      ],
+      "id": "3de5dcca-d7e5-4924-8663-dbdf0c1cab69",
+      "credentials": {
+        "redis": {
+          "id": "wlF4O0UQT5Suf5qb",
+          "name": "Redis account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Test workflow’": {
+      "main": [
+        [
+          {
+            "node": "Apagar Chave",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Apagar Chave": {
+      "main": [
+        [
+          {
+            "node": "557988381612",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Apagar Chave2": {
+      "main": [
+        [
+          {
+            "node": "Apagar Chave3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Apagar Chave3": {
+      "main": [
+        [
+          {
+            "node": "Apagar Chave4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Apagar Chave4": {
+      "main": [
+        [
+          {
+            "node": "Apagar status-557988381612",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase": {
+      "main": [
+        [
+          {
+            "node": "Supabase1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "status": {
+      "main": [
+        []
+      ]
+    },
+    "557988381612": {
+      "main": [
+        [
+          {
+            "node": "Apagar Chave2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Apagar status-557988381612": {
+      "main": [
+        [
+          {
+            "node": "Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "c081c016-21e2-495a-945e-33cca4c54495",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "1dfb32743644648a276cc34d3b8cd0a01d6b6ba4fd59776d06d5588058d2556c"
+  },
+  "id": "SfsX6GDNDeQD9MFV",
+  "tags": []
+}
