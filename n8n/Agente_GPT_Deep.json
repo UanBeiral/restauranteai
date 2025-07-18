@@ -1,0 +1,510 @@
+{
+  "name": "Agente GPT Deep",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -1160,
+        -80
+      ],
+      "id": "d664547b-91b0-4df2-9b54-1ff3ca43e8d6",
+      "name": "When chat message received",
+      "webhookId": "613666f9-046b-417e-9c16-ce39a7651aa4"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "=557988381612"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryRedisChat",
+      "typeVersion": 1.4,
+      "position": [
+        -200,
+        80
+      ],
+      "id": "3dff7ac5-0ad6-49dc-a279-8ce6c7ac9c27",
+      "name": "memory",
+      "credentials": {
+        "redis": {
+          "id": "wlF4O0UQT5Suf5qb",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "69918e5c-6cbf-44a1-a0a8-e6bdd9646860",
+              "name": "texto",
+              "value": "={{ $('When chat message received').item.json.chatInput }}",
+              "type": "string"
+            },
+            {
+              "id": "d5f56632-01ff-492a-98f1-c4f4dd7cc601",
+              "name": "session_id",
+              "value": "={{ $('When chat message received').item.json.sessionId }}",
+              "type": "string"
+            },
+            {
+              "id": "85351078-014d-476b-a79d-1b9cf0d604d9",
+              "name": "date_time",
+              "value": "={{ $now.format('yyyy-MM-dd')}}",
+              "type": "string"
+            },
+            {
+              "id": "142e0a72-710c-4497-9dae-d6c6bc9511e8",
+              "name": "week_day",
+              "value": "={{ $today.weekdayLong}}",
+              "type": "string"
+            },
+            {
+              "id": "17dd323e-622c-48d5-b870-86ed37aa7067",
+              "name": "horario",
+              "value": "={{ $now.format('HH:mm:ss')}}",
+              "type": "string"
+            },
+            {
+              "id": "b45baf98-0908-44ba-bb24-051e838ccf40",
+              "name": "name",
+              "value": "=Uan",
+              "type": "string"
+            },
+            {
+              "id": "957f3018-b2e2-4a3d-a278-b6406c259f94",
+              "name": "location",
+              "value": "=rua projetada 2, 272, apartamento 601, bloco 5., madre paulina – São Cristóvão - SE – ",
+              "type": "string"
+            },
+            {
+              "id": "26024e25-594a-4572-884f-9b79916a9f2e",
+              "name": "customer_name",
+              "value": "=Uan",
+              "type": "string"
+            },
+            {
+              "id": "703c9c77-1660-4583-803c-1353c1d20778",
+              "name": "phone",
+              "value": "=557988381612",
+              "type": "string"
+            },
+            {
+              "id": "a6303600-ad4e-4839-b6fb-f84c0768c09a",
+              "name": "full_address",
+              "value": "=rua projetada 2, 272, apartamento 601, bloco 5., madre paulina – São Cristóvão - SE – ",
+              "type": "string"
+            },
+            {
+              "id": "26281099-e2c7-4938-87d2-699ea7655513",
+              "name": "lat",
+              "value": "=-10.989073",
+              "type": "string"
+            },
+            {
+              "id": "d4a99a36-ca92-4e86-ab72-fc8d53d931b8",
+              "name": "long",
+              "value": "=-37.053912",
+              "type": "string"
+            },
+            {
+              "id": "51c300fc-ccd3-4dbc-b171-29544381c6ad",
+              "name": "distancia",
+              "value": 10,
+              "type": "number"
+            },
+            {
+              "id": "c1dc526e-d8aa-47be-bffc-0b2ed5ad418f",
+              "name": "memory_state",
+              "value": "={{ $json.memory_state }}",
+              "type": "object"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -420,
+        -160
+      ],
+      "id": "cf6d949c-4ce1-431c-bf89-d51a7d7c0d7f",
+      "name": "Config1"
+    },
+    {
+      "parameters": {
+        "description": "Use a ferramenta **calcula_frete** para obter o valor do frete com base na distância.\n\n#Instructions\n1. Receba o parâmetro `distance_km` (number) representando a distância em quilômetros.  \n2. Calcule o valor do frete conforme o subfluxo\n3. Retorne um objeto contendo:\n   - `frete`: number, valor do frete em reais.",
+        "workflowId": {
+          "__rl": true,
+          "value": "RitUc3X2Tib8Bnn6",
+          "mode": "list",
+          "cachedResultName": "Calcula_Frete"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "distance": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('distance', ``, 'number') }}"
+          },
+          "matchingColumns": [
+            "distance"
+          ],
+          "schema": [
+            {
+              "id": "distance",
+              "displayName": "distance",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        140,
+        80
+      ],
+      "id": "69dd7119-1356-4676-a13d-67548b54178d",
+      "name": "calcula_frete"
+    },
+    {
+      "parameters": {
+        "description": "Use a ferramenta **buscar_itens** para pesquisar categorias ou itens no catálogo.\n\n#Instructions\n1. Receba o parâmetro `texto` (string) contendo o termo de busca do cliente.  \n2. Pesquise no catálogo todos os itens ou categorias que correspondam ao texto.  \n3. Retorne um objeto com:\n   - `opcoes`: array de objetos `{ nome: string, preco: number, quantidade: number }`.  \n   - `resposta`: string formatada listando as opções numeradas (nome e preço).",
+        "workflowId": {
+          "__rl": true,
+          "value": "HzXXO6HfQxJDKyCJ",
+          "mode": "list",
+          "cachedResultName": "buscar_itens"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "texto": "={{ $fromAI('texto', ``, 'string') }}",
+            "phone": "={{ $fromAI('phone', ``, 'string') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "texto",
+              "displayName": "texto",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "phone",
+              "displayName": "phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        -20,
+        80
+      ],
+      "id": "8c2a3cdb-867d-4c16-a0bb-119cc835f936",
+      "name": "buscar_itens"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "propertyName": "memory_state",
+        "key": "status-557988381612",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        -740,
+        -100
+      ],
+      "id": "b21a5e7c-be38-46e1-a8a8-c9057def9f4e",
+      "name": "Redis",
+      "alwaysOutputData": true,
+      "credentials": {
+        "redis": {
+          "id": "wlF4O0UQT5Suf5qb",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Use a ferramenta **memory_set** para salvar ou atualizar o estado da conversa em memória.\n#Instructions\n1. Receba os parâmetros:\n   - `key` (string): chave para armazenar o estado no Redis.\n   - `value` (object): objeto com o estado atualizado da conversa.\n2. Armazene o par chave-valor no Redis.  \n3. Não retorne valor em caso de sucesso.\n",
+        "operation": "set",
+        "key": "=status-{{ $json.phone }}",
+        "value": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Value', ``, 'string') }}"
+      },
+      "type": "n8n-nodes-base.redisTool",
+      "typeVersion": 1,
+      "position": [
+        300,
+        80
+      ],
+      "id": "ad8a4e3f-cfa6-48eb-b0a2-eadaa6e53910",
+      "name": "memory_set",
+      "credentials": {
+        "redis": {
+          "id": "wlF4O0UQT5Suf5qb",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {
+          "temperature": 0.2
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatDeepSeek",
+      "typeVersion": 1,
+      "position": [
+        -400,
+        80
+      ],
+      "id": "687c6759-f18b-4e6b-867a-20e53a588fed",
+      "name": "DeepSeek Chat Model",
+      "credentials": {
+        "deepSeekApi": {
+          "id": "gbtpWmyoWPDUlU6i",
+          "name": "DeepSeek account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "description": "Chame esta tool para cadastrar o pedido do cliente na base de dados.",
+        "workflowId": {
+          "__rl": true,
+          "value": "8mqXOdZzEbIevWSZ",
+          "mode": "list",
+          "cachedResultName": "criar_pedido_no_banco"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "phone": "={{ $fromAI('phone', ``, 'string') }}",
+            "customer_name": "={{ $fromAI('customer_name', ``, 'string') }}",
+            "adress": "={{ $fromAI('adress', ``, 'string') }}",
+            "distance_km": "={{ $fromAI('distance_km', ``, 'number') }}",
+            "frete": "={{ $fromAI('frete', ``, 'number') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "phone",
+              "displayName": "phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "customer_name",
+              "displayName": "customer_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "adress",
+              "displayName": "adress",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "distance_km",
+              "displayName": "distance_km",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number"
+            },
+            {
+              "id": "frete",
+              "displayName": "frete",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        460,
+        80
+      ],
+      "id": "aa8a118b-e65c-4b19-a08c-598a68c41a24",
+      "name": "criar_pedido_no_banco"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.texto }}",
+        "options": {
+          "systemMessage": "=# Papel\n\nVocê é um agente de atendimento da Bread&Meat, especializado em carnes e acompanhamentos por delivery via WhatsApp.  \nSeu papel é ajudar o cliente a montar o pedido de delivery, adicionando, removendo ou alterando itens e quantidades conforme solicitado, de maneira cordial, natural e eficiente.  \nOs dados cadastrais do cliente (nome, telefone, endereço) já estão disponíveis no sistema e não precisam ser solicitados.\n\n# Mensagem Inicial Automática\n\n- Sempre inicie a conversa com uma saudação personalizada, usando o nome do cliente presente na variável `{{$json.customer_name}}`.\n- Exemplo de saudação automática:  \n  > “Olá, {{$json.customer_name}}! Seja bem-vindo(a) ao Bread&Meat. Vou te ajudar a montar seu pedido de delivery. Pode me dizer o que gostaria hoje?”\n\n# Instruções\n\n**0. Identificação de Produto**  \n- Sempre que o cliente mencionar qualquer produto (nome, apelido, descrição ou quantidade), **NUNCA presuma o item** – sempre chame a ferramenta `buscar_items` passando exatamente o texto informado pelo cliente, mesmo que seja um produto comum ou óbvio como “coca”.\n- Aguarde sempre o cliente escolher a opção e quantidade **antes de adicionar ao pedido**.\n- Apresente apenas as opções retornadas pela ferramenta ao cliente, sem nunca inventar nomes, preços ou descrições.\n- Se a ferramenta não retornar resultados, informe ao cliente:  \n  “Não encontrei esse item. Pode tentar outro nome ou pedir ajuda?”\n\n**1. Seleção e Atualização de Itens**  \n- Quando o cliente escolher uma das opções apresentadas (por número, nome ou descrição exata), registre a escolha no pedido utilizando a ferramenta `memory_set` (incluindo o item, sua quantidade e atualizando o campo `total_pedido`).\n- Sempre que houver alteração no pedido (adição, alteração de quantidade ou remoção de item), **atualize o campo `total_pedido` no memory** para refletir o valor correto da soma dos itens.\n- Após cada alteração, informe ao cliente o estado atualizado do pedido **incluindo o total atual dos itens** e pergunte se deseja adicionar mais algum item ou finalizar.\n- Caso o pedido fique vazio, zere o pedido no memory (inclusive `total_pedido`) e pergunte se deseja adicionar um novo item ou encerrar.\n- Repita esse processo até o cliente enviar \"finalizar\".\n\n**1.1. Seleção de Itens por Número e Prevenção de Loops**  \n- Sempre que apresentar uma lista numerada de opções para o cliente, utilize a **ordem exata da lista** para mapear a escolha numérica do cliente:\n    - Se o cliente responder “1”, selecione a **primeira opção apresentada**.\n    - Se responder “2”, selecione a **segunda opção apresentada**, e assim por diante.\n- **Nunca utilize números que estejam na descrição do produto** para selecionar a opção desejada.\n- Se o cliente responder, por exemplo, “2x 1”, adicione 2 unidades da opção 1. Caso só responda “1”, adicione 1 unidade da opção 1.\n- Após adicionar, informe ao cliente o estado atualizado do pedido, incluindo o novo total, e pergunte se deseja incluir mais algum item ou finalizar o pedido.\n- **Nunca repita a apresentação das opções para o mesmo item após uma resposta numérica válida.**\n- Caso o cliente responda um número inválido (fora da lista apresentada), informe que a opção é inválida e repita as opções.\n\n**2. Finalização do Pedido**  \n- Ao receber \"finalizar\", apresente ao cliente o resumo do pedido com os itens, quantidades e **o total dos itens do pedido** (sem o frete) e pergunte se deseja confirmar.\n- Se o cliente confirmar, chame a ferramenta `calculo_frete` e informe ao cliente o valor do frete, perguntando se deseja prosseguir.\n- Caso o cliente aceite, chame obrigatoriamente o subfluxo chamado `criar_pedido_no_banco`, responsável por cadastrar o pedido no banco de dados passando os campos necessários:  \n  `\"phone\": {{$json.phone}}, \"customer_name\": {{$json.customer_name}}, \"address\": {{$json.full_address}}, \"distance_km\": {{$json.distancia}}`\n- Assim que receber do subfluxo o número do pedido, os itens e o valor do frete, envie ao cliente um resumo confirmando o pedido, incluindo:\n  - Itens e quantidades\n  - Total dos itens\n  - Valor do frete\n  - **Total a pagar** (itens + frete)\n  - Agradecimento\n\n## Padronização do campo de itens no memory_set\n\n- Sempre utilize a chave `\"pedido\"` para armazenar o array de itens do pedido no objeto salvo pelo `memory_set`.\n- Não utilize as chaves `\"itens\"`, `\"produtos\"` ou qualquer outra. Apenas `\"pedido\"` é permitido.\n- O campo `\"total_pedido\"` deve ser atualizado normalmente, mas sempre dentro do objeto que contém a chave `\"pedido\"`.\n- Exemplo correto:\n  ```json\n  {\n    \"pedido\": [\n      {\"nome\": \"Costela Bovina p/ 1 Pessoa\", \"preco\": 50.9, \"quantidade\": 1},\n      {\"nome\": \"Prato Kids\", \"preco\": 32.9, \"quantidade\": 1}\n    ],\n    \"total_pedido\": 83.8\n  }\n",
+          "returnIntermediateSteps": true
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        -80,
+        -160
+      ],
+      "id": "c9f510f4-9ecf-40b5-8f25-2037a08b62ae",
+      "name": "Agendamento AI",
+      "notesInFlow": false,
+      "onError": "continueRegularOutput"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "Agendamento AI",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "Redis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config1": {
+      "main": [
+        [
+          {
+            "node": "Agendamento AI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "calcula_frete": {
+      "ai_tool": [
+        [
+          {
+            "node": "Agendamento AI",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "buscar_itens": {
+      "ai_tool": [
+        [
+          {
+            "node": "Agendamento AI",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Redis": {
+      "main": [
+        [
+          {
+            "node": "Config1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "memory_set": {
+      "ai_tool": [
+        [
+          {
+            "node": "Agendamento AI",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DeepSeek Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Agendamento AI",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "criar_pedido_no_banco": {
+      "ai_tool": [
+        [
+          {
+            "node": "Agendamento AI",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "c752bd34-baec-4a18-87e0-7b744f45517e",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "1dfb32743644648a276cc34d3b8cd0a01d6b6ba4fd59776d06d5588058d2556c"
+  },
+  "id": "CWRczS5KZAZgK3Rw",
+  "tags": []
+}
