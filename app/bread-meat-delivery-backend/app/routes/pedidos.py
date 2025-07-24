@@ -1,34 +1,86 @@
-from fastapi import APIRouter, Depends, Request, Query
+from fastapi import APIRouter, Depends, Request, Query, HTTPException
 from app.auth.auth import verify_jwt
-
-# Exemplo estático; substitua por integração com Supabase depois!
-EXEMPLO_PEDIDOS = [
-    {"id": 1, "cliente": "João", "status": "solicitado", "endereco": "Rua Teste, 10", "total": 80, "itens":[{"nome":"Costela","qtd":1,"preco":80}]},
-    {"id": 2, "cliente": "Maria", "status": "em_preparo", "endereco": "Av. Exemplo, 123", "total": 50, "itens":[{"nome":"Picanha","qtd":1,"preco":50}]},
-]
+from app.config import SUPABASE_PROJECT_URL, SUPABASE_API_KEY
+import httpx
+from datetime import datetime
 
 router = APIRouter(prefix="/pedidos", tags=["pedidos"])
+
+def format_datetime_br(dt_str):
+    try:
+        dt = datetime.fromisoformat(dt_str.replace("Z", "+00:00"))
+        return dt.strftime("%d/%m/%Y %H:%M")
+    except Exception:
+        return dt_str
+
+def format_money_br(value):
+    try:
+        return f"R$ {float(value):,.2f}".replace(",", "v").replace(".", ",").replace("v", ".")
+    except Exception:
+        return str(value)
 
 @router.get("/")
 async def listar_pedidos(
     request: Request,
-    status: str = Query(default=None, description="Status do pedido"),
-    data: str = Query(default=None, description="Data (aaaa-mm-dd)"),
-    user=Depends(verify_jwt)
+    user=Depends(verify_jwt),
+    status: str = Query("", description="Filtro de status"),
+    data: str = Query("", description="Filtro de data (YYYY-MM-DD)")
 ):
-    pedidos = EXEMPLO_PEDIDOS
+    headers = {
+        "apikey": SUPABASE_API_KEY,
+        "Authorization": f"Bearer {request.headers.get('authorization').split(' ')[1]}"
+    }
+    # Monta a query string do Supabase
+    query_params = []
     if status:
-        pedidos = [p for p in pedidos if p["status"] == status]
+        query_params.append(f"status=eq.{status}")
+    if data:
+        query_params.append(f"created_at=gte.{data}T00:00:00Z")
+        query_params.append(f"created_at=lte.{data}T23:59:59Z")
+    query = "&".join(query_params)
+    url = f"{SUPABASE_PROJECT_URL}/rest/v1/pedidos"
+    if query:
+        url += f"?{query}"
+    # Exemplo para trazer também os itens do pedido (ajuste para o nome real da tabela, se necessário)
+    url += "&select=*,itens_pedido(*)"
+
+    async with httpx.AsyncClient() as client:
+        resp = await client.get(url, headers=headers)
+    if resp.status_code != 200:
+        raise HTTPException(status_code=resp.status_code, detail=resp.text)
+    pedidos = resp.json()
+
+    # Formatação BR dos campos principais
+    for pedido in pedidos:
+        if "created_at" in pedido:
+            pedido["created_at_br"] = format_datetime_br(pedido["created_at"])
+        if "total" in pedido:
+            pedido["total_br"] = format_money_br(pedido["total"])
+        # Itens (se trouxer via relacionamento)
+        if "itens_pedido" in pedido and pedido["itens_pedido"]:
+            for item in pedido["itens_pedido"]:
+                if "preco" in item:
+                    item["preco_br"] = format_money_br(item["preco"])
+
     return pedidos
 
-@router.get("/{pedido_id}")
-async def detalhe_pedido(pedido_id: int, request: Request, user=Depends(verify_jwt)):
-    pedido = next((p for p in EXEMPLO_PEDIDOS if p["id"] == pedido_id), None)
-    if not pedido:
-        return {"erro": "Pedido não encontrado"}
-    return pedido
-
 @router.patch("/{pedido_id}/status")
-async def alterar_status(pedido_id: int, status: str, request: Request, user=Depends(verify_jwt)):
-    # Aqui você faria o update real na tabela do Supabase!
-    return {"msg": f"Pedido {pedido_id} alterado para {status}"}
+async def alterar_status(
+    pedido_id: int,
+    status: str,
+    request: Request,
+    user=Depends(verify_jwt)
+):
+    headers = {
+        "apikey": SUPABASE_API_KEY,
+        "Authorization": f"Bearer {request.headers.get('authorization').split(' ')[1]}",
+        "Content-Type": "application/json",
+        "Prefer": "return=representation"
+    }
+    url = f"{SUPABASE_PROJECT_URL}/rest/v1/pedidos?id=eq.{pedido_id}"
+    data = {"status": status}
+    async with httpx.AsyncClient() as client:
+        resp = await client.patch(url, headers=headers, json=data)
+    if resp.status_code not in (200, 204):
+        raise HTTPException(status_code=resp.status_code, detail=resp.text)
+    return resp.json()
