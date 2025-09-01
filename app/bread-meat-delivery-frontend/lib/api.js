@@ -9,7 +9,7 @@ const api = axios.create({
 
 api.interceptors.request.use((config) => {
   if (typeof window !== "undefined") {
-    const t = localStorage.getItem("sbtoken");
+    const t = localStorage.getItem("sbtoken"); // token do Supabase (usuario único)
     if (t) config.headers = { ...config.headers, Authorization: `Bearer ${t}` };
   }
   return config;

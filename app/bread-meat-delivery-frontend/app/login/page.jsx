@@ -1,53 +1,67 @@
 "use client";
 import React, { useState } from "react";
-import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabase";
 
 export default function LoginPage() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [erro, setErro] = useState("");
-  const router = useRouter();
+  const [loading, setLoading] = useState(false);
 
-  const login = async (e) => {
+  const onSubmit = async (e) => {
     e.preventDefault();
     setErro("");
-    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
-      setErro("E-mail inválido");
-      return;
-    }
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password: senha });
-    if (error) {
-      setErro("Login inválido");
-    } else {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password: senha,
+      });
+      if (error) throw error;
       localStorage.setItem("sbtoken", data.session.access_token);
       router.push("/pedidos");
+    } catch (err) {
+      setErro("Login inválido");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="max-w-xs mx-auto mt-20">
-      <h2 className="text-2xl font-bold mb-4">Login</h2>
-      <form onSubmit={login} className="space-y-2">
-        <input
-          type="email"
-          value={email}
-          onChange={e => setEmail(e.target.value)}
-          placeholder="E-mail"
-          required
-          className="w-full border px-2 py-1 rounded"
-        />
-        <input
-          type="password"
-          value={senha}
-          onChange={e => setSenha(e.target.value)}
-          placeholder="Senha"
-          required
-          className="w-full border px-2 py-1 rounded"
-        />
-        <button type="submit" className="w-full bg-black text-white py-2 rounded">Entrar</button>
+    <div className="min-h-screen flex items-center justify-center p-4">
+      <form onSubmit={onSubmit} className="w-full max-w-sm border rounded p-6 shadow">
+        <h1 className="text-xl font-bold mb-4">Login do Restaurante</h1>
+        <label className="block mb-2">
+          <span>Email</span>
+          <input
+            type="email"
+            className="mt-1 w-full border px-3 py-2 rounded"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
+        </label>
+        <label className="block mb-4">
+          <span>Senha</span>
+          <input
+            type="password"
+            className="mt-1 w-full border px-3 py-2 rounded"
+            value={senha}
+            onChange={(e) => setSenha(e.target.value)}
+            required
+          />
+        </label>
+        {erro && <div className="text-red-600 mb-3">{erro}</div>}
+        <button
+          type="submit"
+          className="w-full bg-black text-white px-4 py-2 rounded disabled:opacity-50"
+          disabled={loading}
+        >
+          {loading ? "Entrando..." : "Entrar"}
+        </button>
       </form>
-      {erro && <div className="text-red-500">{erro}</div>}
     </div>
   );
 }
