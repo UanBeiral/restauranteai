@@ -1,44 +1,57 @@
-from fastapi import APIRouter, Request, Depends, HTTPException
-from app.auth.auth import verify_jwt, _get_bearer_token
-from app.config import SUPABASE_PROJECT_URL, SUPABASE_API_KEY, INSECURE_SSL
+# app/routes/debug.py
+from fastapi import APIRouter, Request, HTTPException
+from app.config import (
+    SUPABASE_PROJECT_URL, SUPABASE_SERVICE_ROLE_KEY, SUPABASE_ANON_KEY, INSECURE_SSL
+)
 import httpx
 
 router = APIRouter(prefix="/__debug", tags=["__debug"])
 
-@router.get("/headers")
-async def headers(request: Request):
-    return dict(request.headers)
-
-@router.get("/whoami")
-async def whoami(user=Depends(verify_jwt)):
-    return user
+@router.get("/health")
+def health():
+    return {
+        "project_url": bool(SUPABASE_PROJECT_URL),
+        "sr_key": bool(SUPABASE_SERVICE_ROLE_KEY),
+        "anon_key": bool(SUPABASE_ANON_KEY),
+        "insecure_ssl": INSECURE_SSL,
+    }
 
 @router.get("/ping-auth")
 async def ping_auth(request: Request):
-    """Testa /auth/v1/user com o token da requisição (sem Depends)."""
-    if not SUPABASE_PROJECT_URL or not SUPABASE_API_KEY:
-        raise HTTPException(status_code=500, detail="Falta SUPABASE_PROJECT_URL/API_KEY no .env")
-    token = _get_bearer_token(request)
-    url = f"{SUPABASE_PROJECT_URL}/auth/v1/user"
-    headers = {"apikey": SUPABASE_API_KEY, "Authorization": f"Bearer {token}"}
-    try:
-        async with httpx.AsyncClient(timeout=10, verify=not INSECURE_SSL) as client:
-            r = await client.get(url, headers=headers)
-        return {"status": r.status_code, "body": r.json() if r.headers.get("content-type","").startswith("application/json") else r.text}
-    except httpx.HTTPError as e:
-        raise HTTPException(status_code=502, detail=f"Falha ao contatar Supabase Auth: {e!s}")
+    """Valida o token do Supabase enviado no Authorization: Bearer <sbtoken>"""
+    token = (request.headers.get("authorization") or "").split("Bearer ")[-1].strip()
+    if not token:
+        raise HTTPException(400, "Envie Authorization: Bearer <sbtoken>")
+    if not SUPABASE_PROJECT_URL or not SUPABASE_ANON_KEY:
+        raise HTTPException(500, "Faltam SUPABASE_PROJECT_URL/ANON_KEY no .env")
 
-@router.get("/ping-rest")
-async def ping_rest(request: Request):
-    """Testa /rest/v1/pedidos com token da requisição (sem filtros)."""
-    if not SUPABASE_PROJECT_URL or not SUPABASE_API_KEY:
-        raise HTTPException(status_code=500, detail="Falta SUPABASE_PROJECT_URL/API_KEY no .env")
-    token = _get_bearer_token(request)
-    url = f"{SUPABASE_PROJECT_URL}/rest/v1/pedidos?select=*"
-    headers = {"apikey": SUPABASE_API_KEY, "Authorization": f"Bearer {token}"}
+    url = f"{SUPABASE_PROJECT_URL}/auth/v1/user"
+    headers = {"apikey": SUPABASE_ANON_KEY, "Authorization": f"Bearer {token}"}
     try:
-        async with httpx.AsyncClient(timeout=10, verify=not INSECURE_SSL) as client:
-            r = await client.get(url, headers=headers)
-        return {"status": r.status_code, "body": r.json() if r.headers.get("content-type","").startswith("application/json") else r.text}
+        async with httpx.AsyncClient(timeout=10, verify=not INSECURE_SSL) as c:
+            r = await c.get(url, headers=headers)
+        ct = r.headers.get("content-type", "")
+        body = r.json() if ct.startswith("application/json") else r.text
+        return {"status": r.status_code, "body": body}
     except httpx.HTTPError as e:
-        raise HTTPException(status_code=502, detail=f"Falha ao contatar Supabase REST: {e!s}")
+        raise HTTPException(502, f"Falha ao contatar Supabase Auth: {e!s}")
+
+@router.get("/ping-rest-sr")
+async def ping_rest_sr():
+    """Chama o PostgREST com Service Role (bypass RLS) só pra validar SR/SSL/rede"""
+    if not SUPABASE_PROJECT_URL or not SUPABASE_SERVICE_ROLE_KEY:
+        raise HTTPException(500, "Faltam SUPABASE_PROJECT_URL/SERVICE_ROLE_KEY no .env")
+
+    url = f"{SUPABASE_PROJECT_URL}/rest/v1/pedidos?select=id&limit=1"
+    headers = {
+        "apikey": SUPABASE_SERVICE_ROLE_KEY,
+        "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE_KEY}",
+    }
+    try:
+        async with httpx.AsyncClient(timeout=10, verify=not INSECURE_SSL) as c:
+            r = await c.get(url, headers=headers)
+        ct = r.headers.get("content-type", "")
+        body = r.json() if ct.startswith("application/json") else r.text
+        return {"status": r.status_code, "body": body}
+    except httpx.HTTPError as e:
+        raise HTTPException(502, f"Falha ao contatar Supabase REST: {e!s}")
