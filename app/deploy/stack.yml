@@ -1,0 +1,51 @@
+version: "3.9"
+
+networks:
+  web:
+    name: web
+
+services:
+  backend:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    image: restauranteai-backend:latest
+    environment:
+      # Preencha no Portainer (ou via env_file) conforme seu app
+      # EXEMPLOS:
+      # - DATABASE_URL=postgresql+psycopg://user:pass@host:5432/db
+      # - SUPABASE_URL=...
+      # - SUPABASE_ANON_KEY=...
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-*}
+    ports:
+      - "8000:8000"   # coloque atrás de proxy reverso em produção
+    restart: unless-stopped
+    networks:
+      - web
+    # healthcheck opcional (requer curl instalado no container)
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+
+  frontend:
+    build:
+      context: ../frontend
+    image: restauranteai-frontend:latest
+    environment:
+      # Aponte o frontend para o backend via service name (Docker DNS)
+      NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://backend:8000}
+      NODE_ENV: production
+    depends_on:
+      - backend
+    ports:
+      - "3000:3000"   # coloque atrás de proxy reverso em produção
+    restart: unless-stopped
+    networks:
+      - web
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/ >/dev/null 2>&1 || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5

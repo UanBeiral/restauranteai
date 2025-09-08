@@ -1,12 +1,7 @@
-// app/page.jsx
-"use client";
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+// ✅ Opção A — simples (se já tem middleware protegendo rotas)
+import { redirect } from "next/navigation";
 
 export default function Home() {
-  const router = useRouter();
-  useEffect(() => {
-    router.replace("/login");
-  }, [router]);
-  return null;
+  // manda a home direto para a lista de pedidos
+  redirect("/pedidos");
 }

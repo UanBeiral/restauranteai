@@ -3,3 +3,5 @@ uvicorn
 python-jose[cryptography]
 httpx
 python-dotenv
+pYJWT
+gunicorn
