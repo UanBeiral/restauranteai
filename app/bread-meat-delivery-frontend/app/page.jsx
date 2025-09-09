@@ -1,7 +1,8 @@
-// ✅ Opção A — simples (se já tem middleware protegendo rotas)
-import { redirect } from "next/navigation";
+// app/bread-meat-delivery-frontend/app/page.jsx
+import { cookies } from 'next/headers';
+import { redirect } from 'next/navigation';
 
 export default function Home() {
-  // manda a home direto para a lista de pedidos
-  redirect("/pedidos");
+  const hasToken = !!cookies().get('bm_token');
+  redirect(hasToken ? '/pedidos' : '/login');
 }

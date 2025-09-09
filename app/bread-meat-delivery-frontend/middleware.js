@@ -1,29 +1,33 @@
-// middleware.js
-import { NextResponse } from "next/server";
+// app/bread-meat-delivery-frontend/middleware.js
+import { NextResponse } from 'next/server';
 
 export function middleware(req) {
-  const { pathname } = req.nextUrl;
+  const token = req.cookies.get('bm_token')?.value || null;
+  const { pathname, search } = req.nextUrl;
 
-  // Rotas públicas: login, assets e proxy de API
-  const isPublic =
-    pathname.startsWith("/login") ||
-    pathname.startsWith("/_next") ||
-    pathname.startsWith("/favicon") ||
-    pathname.startsWith("/api");
+  const isProtected = pathname.startsWith('/pedidos') || pathname.startsWith('/pedido');
+  const isAuthRoute = pathname === '/login';
 
-  if (isPublic) return NextResponse.next();
+  // 1) Bloquear rotas protegidas sem token → /login?next=<destino>
+  if (isProtected && !token) {
+    const url = req.nextUrl.clone();
+    url.pathname = '/login';
+    url.searchParams.set('next', pathname + search);
+    return NextResponse.redirect(url);
+  }
 
-  // Autorizado se tiver o cookie bm_token
-  const token = req.cookies.get("bm_token")?.value;
-  if (token) return NextResponse.next();
+  // 2) Usuário logado não deve ficar no /login → volta para "next" ou /pedidos
+  if (isAuthRoute && token) {
+    const next = req.nextUrl.searchParams.get('next') || '/pedidos';
+    const url = req.nextUrl.clone();
+    url.pathname = next;
+    url.search = '';
+    return NextResponse.redirect(url);
+  }
 
-  // Sem token -> manda para /login e guarda a rota desejada
-  const url = req.nextUrl.clone();
-  url.pathname = "/login";
-  url.searchParams.set("from", pathname);
-  return NextResponse.redirect(url);
+  return NextResponse.next();
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+  matcher: ['/pedidos/:path*', '/pedido/:path*', '/login'],
 };
