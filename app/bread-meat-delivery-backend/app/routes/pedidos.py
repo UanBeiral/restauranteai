@@ -1,7 +1,8 @@
-# app/routes/pedidos.py
+# app/bread-meat-delivery-backend/app/routes/pedidos.py
+# Rotas de pedidos — protegidas por cookie bm_token (get_user) e com filtro por data via created_at (faixa do dia)
 from fastapi import APIRouter, Depends, Query, HTTPException, Body
 from pydantic import BaseModel
-from app.auth.auth import verify_supabase_user
+from app.routes.auth import get_user  # usa cookie bm_token (ACCESS_CODE → /auth/verify)
 from app.config import SUPABASE_PROJECT_URL, SUPABASE_SERVICE_ROLE_KEY, INSECURE_SSL
 from datetime import datetime
 import httpx
@@ -9,7 +10,7 @@ import httpx
 router = APIRouter(
     prefix="/pedidos",
     tags=["pedidos"],
-    dependencies=[Depends(verify_supabase_user)],  # exige login Supabase (sbtoken)
+    dependencies=[Depends(get_user)],  # exige login via cookie bm_token
 )
 
 # -----------------------
@@ -38,7 +39,7 @@ def format_distance_km_br(val) -> str:
         return "" if val is None else str(val)
 
 def format_eta_br(eta_str: str) -> str:
-    # interval do Postgres costuma vir como "HH:MM:SS" ou "1 day 02:30:00"
+    # interval do Postgres: "HH:MM:SS" ou "1 day 02:30:00"
     if not eta_str:
         return ""
     try:
@@ -69,13 +70,15 @@ def _sr_headers() -> dict:
         "apikey": SUPABASE_SERVICE_ROLE_KEY,
         "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE_KEY}",
         "Content-Type": "application/json",
+        "Accept": "application/json",
+        "Prefer": "count=exact",
     }
 
 # -----------------------
 # Endpoints
 # -----------------------
-@router.get("")
-@router.get("/")
+@router.get("")   # aceita /pedidos sem barra final (evita 307)
+@router.get("/")  # aceita /pedidos/ com barra final
 async def listar_pedidos(
     status: str = Query("", description="Filtro de status"),
     data:   str = Query("", description="Filtro de data (YYYY-MM-DD)"),
@@ -104,7 +107,12 @@ async def listar_pedidos(
         raise HTTPException(500, f"Erro interno listar_pedidos: {type(e).__name__}: {e!s}")
 
     if resp.status_code != 200:
-        raise HTTPException(status_code=resp.status_code, detail=resp.text)
+        # devolve o erro original para facilitar o debug (400s do PostgREST)
+        try:
+            detail = resp.json()
+        except Exception:
+            detail = resp.text
+        raise HTTPException(status_code=resp.status_code, detail=detail)
 
     try:
         pedidos = resp.json()
@@ -127,7 +135,7 @@ async def obter_pedido_por_id(pedido_id: int):
     params = [
         ("id", f"eq.{pedido_id}"),
         ("select", "*,order_items(*)"),
-        ("limit", "1")
+        ("limit", "1"),
     ]
     url = f"{SUPABASE_PROJECT_URL}/rest/v1/pedidos"
     try:
@@ -139,7 +147,11 @@ async def obter_pedido_por_id(pedido_id: int):
         raise HTTPException(500, f"Erro interno obter_pedido_por_id: {type(e).__name__}: {e!s}")
 
     if resp.status_code != 200:
-        raise HTTPException(status_code=resp.status_code, detail=resp.text)
+        try:
+            detail = resp.json()
+        except Exception:
+            detail = resp.text
+        raise HTTPException(status_code=resp.status_code, detail=detail)
 
     rows = resp.json()
     if not rows:
@@ -177,6 +189,10 @@ async def alterar_status(pedido_id: int, payload: StatusPayload = Body(...)):
         raise HTTPException(500, f"Erro interno alterar_status: {type(e).__name__}: {e!s}")
 
     if resp.status_code not in (200, 204):
-        raise HTTPException(status_code=resp.status_code, detail=resp.text)
+        try:
+            detail = resp.json()
+        except Exception:
+            detail = resp.text
+        raise HTTPException(status_code=resp.status_code, detail=detail)
 
-    return resp.json()
+    return resp.json() if resp.content else {"ok": True}
