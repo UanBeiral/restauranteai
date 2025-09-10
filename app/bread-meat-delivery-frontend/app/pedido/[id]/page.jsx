@@ -1,60 +1,87 @@
-// app/pedido/[id]/page.jsx
-"use client";
-import React, { useEffect, useState } from "react";
-import api from "@/lib/api";
-import { useParams, useRouter } from "next/navigation";
+// app/bread-meat-delivery-frontend/app/pedido/[id]/page.jsx
+import { headers } from 'next/headers';
 
-export default function OrderDetailPage() {
-  const router = useRouter();
-  const params = useParams();
-  const id = params?.id;
-  const [pedido, setPedido] = useState(null);
-  const [erro, setErro] = useState("");
+const moneyBR = (v) =>
+  new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' })
+    .format(Number(v ?? 0));
 
-  useEffect(() => {
-    const run = async () => {
-      try {
-        const { data } = await api.get(`/pedidos/${id}`);
-        setPedido(data || null);
-      } catch {
-        setErro("Falha ao carregar o pedido.");
-        setPedido(null);
-      }
-    };
-    if (id) run();
-  }, [id]);
+async function getPedido(id) {
+  // Encaminha o cookie bm_token ao backend (SSR)
+  const cookie = headers().get('cookie') ?? '';
 
-  if (!pedido) {
-    return (
-      <div className="max-w-xl mx-auto p-4">
-        <button className="mb-4 text-blue-600" onClick={() => router.back()}>
-          Voltar
-        </button>
-        {erro ? <div className="text-red-600">{erro}</div> : "Carregando..."}
-      </div>
-    );
+  // Caminho relativo -> passa pelo rewrite do Next
+  const res = await fetch(`/api/pedidos/${id}`, {
+    headers: { cookie },
+    cache: 'no-store',
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Falha ao carregar pedido #${id}: ${res.status} ${text}`);
   }
+  return res.json();
+}
+
+export default async function PedidoPage({ params }) {
+  const id = params?.id;
+  const pedido = await getPedido(id);
+
+  const titulo = `Pedido #${pedido?.id ?? id}`;
+  const status = pedido?.status ?? '';
+  const dataBR = pedido?.created_at_br ?? '';
+  const totalStr = pedido?.total_br ?? (pedido?.total != null ? moneyBR(pedido.total) : '');
+
+  // order_items já tem item_name e item_total calculado no BD
+  const itens = Array.isArray(pedido?.order_items) ? pedido.order_items : [];
 
   return (
-    <div className="max-w-xl mx-auto p-4">
-      <button className="mb-4 text-blue-600" onClick={() => router.back()}>
-        Voltar
-      </button>
-      <h2 className="text-2xl font-bold mb-2">Pedido #{pedido.id}</h2>
-      <div className="mb-1">Status: <span className="capitalize">{pedido.status}</span></div>
-      <div className="mb-1">Data: {pedido.created_at_br ?? pedido.created_at ?? "-"}</div>
-      <div className="mb-1">Total: {pedido.total_br ?? (pedido.total ?? "-")}</div>
+    <main className="max-w-2xl mx-auto p-6 space-y-4">
+      <h1 className="text-2xl font-semibold">{titulo}</h1>
 
-      <h3 className="font-bold mt-6 mb-2">Itens</h3>
-      <ul className="list-disc pl-5">
-        {(pedido.order_items ?? []).length
-          ? pedido.order_items.map((it, i) => (
-              <li key={i}>
-                {(it.name ?? it.nome ?? "Item")} x{(it.quantity ?? it.qtd ?? 1)} — {(it.price_br ?? it.preco_br ?? it.price ?? it.preco ?? "")}
-              </li>
-            ))
-          : <li>Nenhum item.</li>}
-      </ul>
-    </div>
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          <span className="text-gray-500">Status:</span>{' '}
+          <span className="font-medium">{status}</span>
+        </div>
+        <div>
+          <span className="text-gray-500">Data:</span>{' '}
+          <span className="font-medium">{dataBR}</span>
+        </div>
+        <div className="col-span-2">
+          <span className="text-gray-500">Total:</span>{' '}
+          <span className="font-medium">{totalStr}</span>
+        </div>
+      </div>
+
+      <section className="mt-4">
+        <h2 className="text-lg font-medium mb-2">Itens</h2>
+        {itens.length === 0 ? (
+          <p className="text-gray-500">Nenhum item neste pedido.</p>
+        ) : (
+          <ul className="space-y-2">
+            {itens.map((it, idx) => {
+              const name = it?.item_name ?? it?.name ?? `Item ${idx + 1}`;
+              const qty = it?.quantity ?? 1;
+              const totalItemStr =
+                it?.item_total_br ??
+                (it?.item_total != null ? moneyBR(it.item_total) : moneyBR(0));
+
+              return (
+                <li
+                  key={it?.id ?? idx}
+                  className="flex items-center justify-between border rounded-lg p-3"
+                >
+                  <div className="truncate">
+                    <span className="font-medium">{name}</span>
+                    <span className="text-gray-500"> × {qty}</span>
+                  </div>
+                  <div className="font-semibold">{totalItemStr}</div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
+    </main>
   );
 }
