@@ -2,7 +2,11 @@
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 
-export default function Home() {
-  const hasToken = !!cookies().get('bm_token');
+export default async function Home() {
+  // Next 14/15: cookies() é assíncrono
+  const cookieStore = await cookies();
+  const hasToken = !!cookieStore.get('bm_token');
+
+  // Envia para /pedidos se logado; caso contrário, /login
   redirect(hasToken ? '/pedidos' : '/login');
 }

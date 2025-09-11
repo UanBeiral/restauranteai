@@ -6,11 +6,15 @@ const moneyBR = (v) =>
     .format(Number(v ?? 0));
 
 async function getPedido(id) {
-  // Encaminha o cookie bm_token ao backend (SSR)
-  const cookie = headers().get('cookie') ?? '';
+  // Next 14/15: headers() é assíncrono
+  const h = await headers();
+  const host = h.get('host');
+  const proto = h.get('x-forwarded-proto') || 'http';
+  const base = `${proto}://${host}`;
+  const cookie = h.get('cookie') ?? '';
 
-  // Caminho relativo -> passa pelo rewrite do Next
-  const res = await fetch(`/api/pedidos/${id}`, {
+  // SSR: URL absoluta + encaminhar o cookie para passar pelo rewrite (/api)
+  const res = await fetch(`${base}/api/pedidos/${id}`, {
     headers: { cookie },
     cache: 'no-store',
   });
@@ -31,7 +35,7 @@ export default async function PedidoPage({ params }) {
   const dataBR = pedido?.created_at_br ?? '';
   const totalStr = pedido?.total_br ?? (pedido?.total != null ? moneyBR(pedido.total) : '');
 
-  // order_items já tem item_name e item_total calculado no BD
+  // order_items já possui item_name e item_total (calculado no BD)
   const itens = Array.isArray(pedido?.order_items) ? pedido.order_items : [];
 
   return (
@@ -62,6 +66,7 @@ export default async function PedidoPage({ params }) {
             {itens.map((it, idx) => {
               const name = it?.item_name ?? it?.name ?? `Item ${idx + 1}`;
               const qty = it?.quantity ?? 1;
+              // item_total vem do BD; se o backend já formatar, usar item_total_br
               const totalItemStr =
                 it?.item_total_br ??
                 (it?.item_total != null ? moneyBR(it.item_total) : moneyBR(0));
