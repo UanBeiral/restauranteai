@@ -53,3 +53,6 @@ logs/
 # === SO ===
 .DS_Store
 Thumbs.db
+app/bread-meat-delivery-backend/app/routes/__pycache__/pedidos.cpython-312.pyc
+app/bread-meat-delivery-backend/app/routes/__pycache__/pedidos.cpython-312.pyc
+app/bread-meat-delivery-backend/app/__pycache__/main.cpython-312.pyc

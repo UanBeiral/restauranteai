@@ -8,7 +8,6 @@ export function middleware(req) {
   const isProtected = pathname.startsWith('/pedidos') || pathname.startsWith('/pedido');
   const isAuthRoute = pathname === '/login';
 
-  // 1) Bloquear rotas protegidas sem token → /login?next=<destino>
   if (isProtected && !token) {
     const url = req.nextUrl.clone();
     url.pathname = '/login';
@@ -16,12 +15,10 @@ export function middleware(req) {
     return NextResponse.redirect(url);
   }
 
-  // 2) Usuário logado não deve ficar no /login → volta para "next" ou /pedidos
   if (isAuthRoute && token) {
     const next = req.nextUrl.searchParams.get('next') || '/pedidos';
     const url = req.nextUrl.clone();
-    url.pathname = next;
-    url.search = '';
+    url.pathname = next; url.search = '';
     return NextResponse.redirect(url);
   }
 

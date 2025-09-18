@@ -1,27 +1,26 @@
+# app/bread-meat-delivery-backend/app/main.py
+import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.routes import pedidos
-from app.routes import debug  # <---
-from app.routes.auth import router as auth_router 
+from app.routes import auth, pedidos
 
 app = FastAPI()
-origins = ["http://localhost:3000", "https://seu-dominio-frontend.com"]
+
+# CORS (em produção use seu domínio)
+allowed = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000").split(",")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins   ,  # restrinja em prod
+    allow_origins=[o.strip() for o in allowed],
     allow_credentials=True,
     allow_methods=["*"],
-    allow_headers=["Authorization", "Content-Type", "*"],
+    allow_headers=["*"],
 )
 
-app.include_router(pedidos.router)
-app.include_router(debug.router)  # <---
-app.include_router(auth_router)
-
-@app.get("/")
-async def root():
-    return {"msg": "API Bread&Meat Delivery"}
-
 @app.get("/health")
-def health(): return {"ok": True}
+def health():
+    return {"ok": True}
+
+# routers
+app.include_router(auth.router)
+app.include_router(pedidos.router)

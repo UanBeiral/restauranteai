@@ -1,28 +1,21 @@
-# backend/Dockerfile
-FROM python:3.12-slim
-
+# app/bread-meat-delivery-backend/Dockerfile
+FROM python:3.12-slim AS base
 ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1 \
-    PIP_NO_CACHE_DIR=1
+    PYTHONUNBUFFERED=1
+
+# deps do sistema (curl p/ healthcheck; libs SSL/ffi p/ wheels)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl build-essential libssl-dev libffi-dev \
+ && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-# (Opcional) Dependências nativas para libs que precisem compilar
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential curl \
-  && rm -rf /var/lib/apt/lists/*
-
-# Instalar dependências Python
+# deps Python
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copiar código
-COPY . .
+# código
+COPY app ./app
 
-# Porta do app
 EXPOSE 8000
-
-# Ajuste o módulo "app.main:app" conforme sua estrutura
-CMD ["gunicorn", "app.main:app", \
-     "-k", "uvicorn.workers.UvicornWorker", \
-     "--bind", "0.0.0.0:8000", "--workers", "2", "--timeout", "120"]
+CMD ["gunicorn","app.main:app","-k","uvicorn.workers.UvicornWorker","--bind","0.0.0.0:8000","--workers","2","--timeout","120"]

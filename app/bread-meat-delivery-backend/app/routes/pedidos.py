@@ -1,8 +1,7 @@
 # app/bread-meat-delivery-backend/app/routes/pedidos.py
-# Rotas de pedidos — protegidas por cookie bm_token (get_user) e com filtro por data via created_at (faixa do dia)
 from fastapi import APIRouter, Depends, Query, HTTPException, Body
 from pydantic import BaseModel
-from app.routes.auth import get_user  # usa cookie bm_token (ACCESS_CODE → /auth/verify)
+from app.routes.auth import get_user
 from app.config import SUPABASE_PROJECT_URL, SUPABASE_SERVICE_ROLE_KEY, INSECURE_SSL
 from datetime import datetime
 import httpx
@@ -10,12 +9,9 @@ import httpx
 router = APIRouter(
     prefix="/pedidos",
     tags=["pedidos"],
-    dependencies=[Depends(get_user)],  # exige login via cookie bm_token
+    dependencies=[Depends(get_user)],
 )
 
-# -----------------------
-# Helpers de formatação BR
-# -----------------------
 def format_money_br(value) -> str:
     try:
         return f"R$ {float(value):,.2f}".replace(",", "v").replace(".", ",").replace("v", ".")
@@ -23,10 +19,8 @@ def format_money_br(value) -> str:
         return "" if value is None else str(value)
 
 def format_datetime_br(dt_str: str) -> str:
-    if not dt_str:
-        return ""
+    if not dt_str: return ""
     try:
-        # aceita "2025-07-15T00:00:00Z" ou timestamptz ISO
         dt = datetime.fromisoformat(dt_str.replace("Z", "+00:00"))
         return dt.strftime("%d/%m/%Y %H:%M")
     except Exception:
@@ -39,33 +33,24 @@ def format_distance_km_br(val) -> str:
         return "" if val is None else str(val)
 
 def format_eta_br(eta_str: str) -> str:
-    # interval do Postgres: "HH:MM:SS" ou "1 day 02:30:00"
-    if not eta_str:
-        return ""
+    if not eta_str: return ""
     try:
         if "day" in eta_str:
             parts = eta_str.split("day")
-            days = int(parts[0].strip())
-            hhmmss = parts[1].strip()
+            days = int(parts[0].strip()); hhmmss = parts[1].strip()
         else:
-            days = 0
-            hhmmss = eta_str.strip()
+            days = 0; hhmmss = eta_str.strip()
         hh, mm, ss = [int(x) for x in hhmmss.split(":")]
-        total_min = days * 24 * 60 + hh * 60 + mm + (1 if ss >= 30 else 0)
-        if total_min < 60:
-            return f"{total_min} min"
-        h, m = divmod(total_min, 60)
+        total_min = days*24*60 + hh*60 + mm + (1 if ss >= 30 else 0)
+        if total_min < 60: return f"{total_min} min"
+        h,m = divmod(total_min,60)
         return f"{h}h {m}m" if m else f"{h}h"
     except Exception:
         return eta_str
 
-# -----------------------
-# HTTP helpers
-# -----------------------
 def _sr_headers() -> dict:
     if not SUPABASE_PROJECT_URL or not SUPABASE_SERVICE_ROLE_KEY:
-        raise HTTPException(status_code=500, detail="Faltam SUPABASE_PROJECT_URL/SERVICE_ROLE_KEY no .env")
-    # Service Role ignora RLS (servidor somente)
+        raise HTTPException(500, "Faltam SUPABASE_PROJECT_URL/SERVICE_ROLE_KEY no .env")
     return {
         "apikey": SUPABASE_SERVICE_ROLE_KEY,
         "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE_KEY}",
@@ -74,11 +59,8 @@ def _sr_headers() -> dict:
         "Prefer": "count=exact",
     }
 
-# -----------------------
-# Endpoints
-# -----------------------
-@router.get("")   # aceita /pedidos sem barra final (evita 307)
-@router.get("/")  # aceita /pedidos/ com barra final
+@router.get("")   # aceita /pedidos
+@router.get("/")  # aceita /pedidos/
 async def listar_pedidos(
     status: str = Query("", description="Filtro de status"),
     data:   str = Query("", description="Filtro de data (YYYY-MM-DD)"),
@@ -89,9 +71,7 @@ async def listar_pedidos(
     if status:
         params.append(("status", f"eq.{status}"))
 
-    # aceita data em YYYY-MM-DD (ex.: 2025-07-15). Se vier vazia, não filtra.
     if data:
-        # faixa do dia inteiro (UTC)
         params.append(("created_at", f"gte.{data}T00:00:00Z"))
         params.append(("created_at", f"lte.{data}T23:59:59Z"))
 
@@ -107,11 +87,8 @@ async def listar_pedidos(
         raise HTTPException(500, f"Erro interno listar_pedidos: {type(e).__name__}: {e!s}")
 
     if resp.status_code != 200:
-        # devolve o erro original para facilitar o debug (400s do PostgREST)
-        try:
-            detail = resp.json()
-        except Exception:
-            detail = resp.text
+        try: detail = resp.json()
+        except Exception: detail = resp.text
         raise HTTPException(status_code=resp.status_code, detail=detail)
 
     try:
@@ -132,11 +109,7 @@ async def listar_pedidos(
 @router.get("/{pedido_id}")
 async def obter_pedido_por_id(pedido_id: int):
     headers = _sr_headers()
-    params = [
-        ("id", f"eq.{pedido_id}"),
-        ("select", "*,order_items(*)"),
-        ("limit", "1"),
-    ]
+    params = [("id", f"eq.{pedido_id}"), ("select", "*,order_items(*)"), ("limit", "1")]
     url = f"{SUPABASE_PROJECT_URL}/rest/v1/pedidos"
     try:
         async with httpx.AsyncClient(timeout=15, verify=not INSECURE_SSL) as client:
@@ -147,15 +120,13 @@ async def obter_pedido_por_id(pedido_id: int):
         raise HTTPException(500, f"Erro interno obter_pedido_por_id: {type(e).__name__}: {e!s}")
 
     if resp.status_code != 200:
-        try:
-            detail = resp.json()
-        except Exception:
-            detail = resp.text
+        try: detail = resp.json()
+        except Exception: detail = resp.text
         raise HTTPException(status_code=resp.status_code, detail=detail)
 
     rows = resp.json()
     if not rows:
-        raise HTTPException(status_code=404, detail="Pedido não encontrado")
+        raise HTTPException(404, "Pedido não encontrado")
 
     p = rows[0]
     p["created_at_br"]  = format_datetime_br(p.get("created_at"))
@@ -189,10 +160,8 @@ async def alterar_status(pedido_id: int, payload: StatusPayload = Body(...)):
         raise HTTPException(500, f"Erro interno alterar_status: {type(e).__name__}: {e!s}")
 
     if resp.status_code not in (200, 204):
-        try:
-            detail = resp.json()
-        except Exception:
-            detail = resp.text
+        try: detail = resp.json()
+        except Exception: detail = resp.text
         raise HTTPException(status_code=resp.status_code, detail=detail)
 
     return resp.json() if resp.content else {"ok": True}
