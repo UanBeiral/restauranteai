@@ -1,3 +1,4 @@
+# app/deploy/stack.yml
 version: "3.9"
 
 networks:
@@ -7,45 +8,50 @@ networks:
 services:
   backend:
     build:
-      context: ../backend
+      context: ../bread-meat-delivery-backend
       dockerfile: Dockerfile
     image: restauranteai-backend:latest
     environment:
-      # Preencha no Portainer (ou via env_file) conforme seu app
-      # EXEMPLOS:
-      # - DATABASE_URL=postgresql+psycopg://user:pass@host:5432/db
-      # - SUPABASE_URL=...
-      # - SUPABASE_ANON_KEY=...
-      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-*}
+      # Ajuste no Portainer (não comitar segredos)
+      ACCESS_CODE: ${ACCESS_CODE}
+      JWT_SECRET: ${JWT_SECRET}
+      TOKEN_TTL_HOURS: ${TOKEN_TTL_HOURS:-12}
+      COOKIE_SECURE: ${COOKIE_SECURE:-true}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-https://app.seudominio.com}
+      SUPABASE_PROJECT_URL: ${SUPABASE_PROJECT_URL}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}
+      SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY}
     ports:
-      - "8000:8000"   # coloque atrás de proxy reverso em produção
+      - "8000:8000"
     restart: unless-stopped
     networks:
       - web
-    # healthcheck opcional (requer curl instalado no container)
     healthcheck:
-      test: ["CMD", "curl", "-fsS", "http://localhost:8000/health"]
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8000/health >/dev/null 2>&1 || exit 1"]
       interval: 30s
       timeout: 5s
       retries: 5
 
   frontend:
     build:
-      context: ../frontend
+      context: ../bread-meat-delivery-frontend
+      dockerfile: Dockerfile
+      args:
+        - API_BASE_URL=http://backend:8000
     image: restauranteai-frontend:latest
     environment:
-      # Aponte o frontend para o backend via service name (Docker DNS)
-      NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://backend:8000}
       NODE_ENV: production
+      # Se quiser forçar via env pública (não é necessário com rewrite):
+      # NEXT_PUBLIC_API_BASE_URL: /api
     depends_on:
       - backend
     ports:
-      - "3000:3000"   # coloque atrás de proxy reverso em produção
+      - "3000:3000"
     restart: unless-stopped
     networks:
       - web
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/ >/dev/null 2>&1 || exit 1"]
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/ >/dev/null 2>&1 || exit 1"]
       interval: 30s
       timeout: 5s
       retries: 5
